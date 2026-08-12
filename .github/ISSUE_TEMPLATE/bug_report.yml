@@ -1,0 +1,38 @@
+name: Bug Report
+
+description: 报告一个 bug
+
+labels: ["type/bug"]
+
+body:
+
+  - type: textarea
+
+    attributes:
+
+      label: 描述
+
+      description: 发生了什么
+
+    validations:
+
+      required: true
+
+  - type: textarea
+
+    attributes:
+
+      label: 复现步骤
+
+  - type: textarea
+
+    attributes:
+
+      label: 期望行为
+
+  - type: textarea
+
+    attributes:
+
+      label: 环境信息
+

@@ -1,0 +1,26 @@
+name: Feature Request
+
+description: 请求一个新功能
+
+labels: ["type/feature"]
+
+body:
+
+  - type: textarea
+
+    attributes:
+
+      label: 描述
+
+      description: 你希望添加什么功能
+
+    validations:
+
+      required: true
+
+  - type: textarea
+
+    attributes:
+
+      label: 使用场景
+

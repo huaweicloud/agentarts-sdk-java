@@ -1,0 +1,97 @@
+name: Status Transition
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  issues:
+    types: [closed, reopened]
+permissions:
+  issues: write
+  contents: read
+jobs:
+  link-pr-to-issue:
+    if: github.event.pull_request && (github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.action == 'reopened')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+            const issueMatches = prBody.match(/(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/gi) || [];
+            for (const match of issueMatches) {
+              const issueNumber = parseInt(match.match(/#(\d+)/)[1]);
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber
+                });
+                const labels = (issue.labels || []).map(l => l.name);
+                const newLabels = labels
+                  .filter(l => !l.startsWith('status/'))
+                  .concat('status/in-progress');
+                await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: issueNumber, labels: [...new Set(newLabels)]
+                });
+              } catch (e) { console.log(`Failed: ${e.message}`); }
+            }
+  mark-resolved:
+    if: github.event.pull_request && github.event.action == 'closed' && github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+            const issueMatches = prBody.match(/(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#(\d+)/gi) || [];
+            for (const match of issueMatches) {
+              const issueNumber = parseInt(match.match(/#(\d+)/)[1]);
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber
+                });
+                const labels = (issue.labels || []).map(l => l.name);
+                const newLabels = labels
+                  .filter(l => !l.startsWith('status/'))
+                  .concat('status/resolved');
+                await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: issueNumber, labels: [...new Set(newLabels)]
+                });
+              } catch (e) { console.log(`Failed: ${e.message}`); }
+            }
+  mark-completed:
+    if: github.event.issue && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = context.issue.number;
+            let closedByMergedPR = false;
+            for (const phrase of [`Fixes #${issueNumber}`, `Closes #${issueNumber}`, `Resolves #${issueNumber}`, `fixes #${issueNumber}`, `closes #${issueNumber}`, `resolves #${issueNumber}`]) {
+              const { data: search } = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${owner}/${repo} type:pr "${phrase}"`
+              });
+              if (search.total_count > 0) { closedByMergedPR = true; break; }
+            }
+            if (!closedByMergedPR) {
+              await new Promise(r => setTimeout(r, 15000));
+              for (const phrase of [`Fixes #${issueNumber}`, `Closes #${issueNumber}`, `Resolves #${issueNumber}`, `fixes #${issueNumber}`, `closes #${issueNumber}`, `resolves #${issueNumber}`]) {
+                const { data: search } = await github.rest.search.issuesAndPullRequests({
+                  q: `repo:${owner}/${repo} type:pr "${phrase}"`
+                });
+                if (search.total_count > 0) { closedByMergedPR = true; break; }
+              }
+            }
+            const currentIssue = await github.rest.issues.get({
+              owner, repo, issue_number: issueNumber
+            });
+            const labels = (currentIssue.data.labels || []).map(l => l.name);
+            const nextStatus = closedByMergedPR ? 'status/resolved' : 'status/completed';
+            const newLabels = labels
+              .filter(l => !l.startsWith('status/'))
+              .concat(nextStatus);
+            await github.rest.issues.update({
+              owner, repo, issue_number: issueNumber, labels: [...new Set(newLabels)]
+            });

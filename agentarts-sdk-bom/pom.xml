@@ -22,7 +22,7 @@
         <vertx.version>4.5.26</vertx.version>
         <huaweicloud-sdk.version>3.1.207</huaweicloud-sdk.version>
         <agentscope.version>1.0.12</agentscope.version>
-        <mcp-sdk.version>0.17.0</mcp-sdk.version>
+        <mcp-sdk.version>2.0.0</mcp-sdk.version>
         <picocli.version>4.7.6</picocli.version>
     </properties>
 

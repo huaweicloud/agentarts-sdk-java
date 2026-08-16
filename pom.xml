@@ -52,7 +52,7 @@
         <reactor-bom.version>2025.0.2</reactor-bom.version>
         <context-propagation.version>1.2.0</context-propagation.version>
         <jackson-bom.version>2.21.1</jackson-bom.version>
-        <slf4j.version>2.0.17</slf4j.version>
+        <slf4j.version>2.0.18</slf4j.version>
         <snakeyaml.version>2.6</snakeyaml.version>
 
         <!-- Vert.x (not in agentscope BOM, self-managed) -->

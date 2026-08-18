@@ -6,6 +6,7 @@ import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import io.agentscope.core.memory.LongTermMemory;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -185,7 +186,7 @@ public class NavigationLongTermMemoryDemo {
 
     private static void runWithRealAgent(boolean hasCloud) {
         // 模型：OpenAIChatModel 支持 baseUrl 对接 OpenAI / 华为云 MaaS / DeepSeek 等
-        io.agentscope.core.model.OpenAIChatModel.Builder modelBuilder = io.agentscope.core.model.OpenAIChatModel.builder()
+        OpenAIChatModel.Builder modelBuilder = OpenAIChatModel.builder()
                 .apiKey(System.getenv("OPENAI_API_KEY"))
                 .modelName(envOrDefault("OPENAI_MODEL_NAME", "gpt-4o"))
                 .stream(true);
@@ -193,7 +194,7 @@ public class NavigationLongTermMemoryDemo {
         if (baseUrl != null && !baseUrl.isEmpty()) {
             modelBuilder.baseUrl(baseUrl);
         }
-        io.agentscope.core.model.OpenAIChatModel model = modelBuilder.build();
+        OpenAIChatModel model = modelBuilder.build();
 
         // 统一构造：云上则共享一个 MemoryClient，离线则用 agentscope 自带 InMemory 实现
         MemoryClient cloudClient = hasCloud ? buildMemoryClient(true) : null;

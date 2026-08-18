@@ -62,7 +62,7 @@
         <huaweicloud-sdk.version>3.1.207</huaweicloud-sdk.version>
 
         <!-- agentscope (provided/optional) -->
-        <agentscope.version>1.0.12</agentscope.version>
+        <agentscope.version>2.0.0</agentscope.version>
         <mcp-sdk.version>0.17.0</mcp-sdk.version>
 
         <!-- CLI -->
@@ -239,6 +239,16 @@
             <dependency>
                 <groupId>io.agentscope</groupId>
                 <artifactId>agentscope-core</artifactId>
+                <version>${agentscope.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.agentscope</groupId>
+                <artifactId>agentscope-harness</artifactId>
+                <version>${agentscope.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.agentscope</groupId>
+                <artifactId>agentscope-extensions-model-openai</artifactId>
                 <version>${agentscope.version}</version>
             </dependency>
             <dependency>

@@ -8,11 +8,11 @@ import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.model.OpenAIChatModel;
-import io.agentscope.core.session.InMemorySession;
-import io.agentscope.core.session.Session;
+import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.core.state.InMemoryAgentStateStore;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -39,18 +39,18 @@ public final class AgentScopeIntegrationExample {
         OpenAIChatModel model = createModel(apiKey);
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(new TimeTools());
-        Session session = createSession();
+        AgentStateStore stateStore = createAgentStore();
         int timeoutSeconds = positiveIntEnvironment("AGENT_TIMEOUT_SECONDS", 120);
         AgentscopeSessionExecutor executor = new AgentscopeSessionExecutor(
-                session, Duration.ofSeconds(timeoutSeconds));
+                stateStore, Duration.ofSeconds(timeoutSeconds));
 
         if ("server".equalsIgnoreCase(System.getenv("RUNTIME_MODE"))) {
-            runServer(model, toolkit, executor, session);
+            runServer(model, toolkit, executor, stateStore);
         } else {
             try {
-                runInteractive(model, toolkit, executor);
+                runInteractive(model, toolkit, executor, stateStore);
             } finally {
-                session.close();
+                stateStore.close();
             }
         }
     }
@@ -67,7 +67,7 @@ public final class AgentScopeIntegrationExample {
         return builder.build();
     }
 
-    private static Session createSession() {
+    private static AgentStateStore createAgentStore() {
         String memoryKey = System.getenv("HUAWEICLOUD_SDK_MEMORY_API_KEY");
         String spaceId = System.getenv("AGENTARTS_MEMORY_SPACE_ID");
         if (isConfigured(memoryKey) && isConfigured(spaceId)) {
@@ -79,23 +79,23 @@ public final class AgentScopeIntegrationExample {
             throw new IllegalStateException(
                     "HUAWEICLOUD_SDK_MEMORY_API_KEY and AGENTARTS_MEMORY_SPACE_ID must be configured together");
         }
-        return new InMemorySession();
+        return new InMemoryAgentStateStore();
     }
 
     private static ReActAgent createAgent(
-            OpenAIChatModel model, Toolkit toolkit, AgentscopeRequestContext context) {
+            OpenAIChatModel model, Toolkit toolkit, AgentStateStore stateStore) {
         return ReActAgent.builder()
                 .name("agentarts-assistant")
                 .sysPrompt(SYSTEM_PROMPT)
                 .model(model)
+                .stateStore(stateStore)
                 .toolkit(toolkit.copy())
-                .toolExecutionContext(context.toToolExecutionContext())
                 .maxIters(8)
                 .build();
     }
 
     private static void runInteractive(
-            OpenAIChatModel model, Toolkit toolkit, AgentscopeSessionExecutor executor) {
+            OpenAIChatModel model, Toolkit toolkit, AgentscopeSessionExecutor executor, AgentStateStore stateStore) {
         AgentscopeRequestContext context = new AgentscopeRequestContext(
                 "interactive", System.getProperty("user.name", "local"), "interactive", null);
         Scanner scanner = new Scanner(System.in);
@@ -106,7 +106,7 @@ public final class AgentScopeIntegrationExample {
                 return;
             }
             if (!message.isBlank()) {
-                Msg response = executor.call(createAgent(model, toolkit, context), message, context);
+                Msg response = executor.call(createAgent(model, toolkit, stateStore), message, context);
                 System.out.println(response.getTextContent());
             }
         }
@@ -114,15 +114,15 @@ public final class AgentScopeIntegrationExample {
 
     private static void runServer(
             OpenAIChatModel model, Toolkit toolkit, AgentscopeSessionExecutor executor,
-            Session session) {
+            AgentStateStore stateStore) {
         AgentArtsRuntimeApp app = new AgentArtsRuntimeApp();
-        app.registerManagedResource(session::close);
+        app.registerManagedResource(stateStore::close);
         new AgentscopeRuntimeHost(app, (payload, context) -> {
             Object value = payload.get("message");
             if (!(value instanceof String message) || message.isBlank()) {
                 throw new IllegalArgumentException("message must be a non-blank string");
             }
-            Msg response = executor.call(createAgent(model, toolkit, context), message, context);
+            Msg response = executor.call(createAgent(model, toolkit, stateStore), message, context);
             return Map.of("reply", response.getTextContent());
         });
         int port = positiveIntEnvironment("PORT", 8080);

@@ -6,8 +6,8 @@ import io.agentscope.core.memory.AgentStateMemoryView;
 import io.agentscope.core.memory.LongTermMemoryMode;
 import io.agentscope.core.memory.StaticLongTermMemoryHook;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.model.OpenAIChatModel;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 

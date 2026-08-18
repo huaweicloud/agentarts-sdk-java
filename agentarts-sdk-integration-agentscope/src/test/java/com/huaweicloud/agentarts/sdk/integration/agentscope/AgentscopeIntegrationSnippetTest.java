@@ -11,8 +11,8 @@ import com.huaweicloud.agentarts.sdk.tools.CodeInterpreterClient;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
-import io.agentscope.core.model.OpenAIChatModel;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -55,10 +55,8 @@ class AgentscopeIntegrationSnippetTest {
         new AgentscopeRuntimeHost(app, (payload, ctx) -> {
             String message = (String) payload.getOrDefault("message", "");
             synchronized (agent) {
-                agent.loadIfExists(session, ctx.sessionKey());
                 Msg input = Msg.builder().role(MsgRole.USER).textContent(message).build();
                 var reply = agent.call(input).block();
-                agent.saveTo(session, ctx.sessionKey());
                 return Map.of("reply", reply != null ? reply.getTextContent() : "");
             }
         });

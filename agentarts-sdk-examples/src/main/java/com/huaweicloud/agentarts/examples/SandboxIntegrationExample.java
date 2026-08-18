@@ -6,10 +6,10 @@ import com.huaweicloud.agentarts.sdk.integration.agentscope.runtime.AgentscopeRu
 import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.model.OpenAIChatModel;
 import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.apache.commons.lang3.StringUtils;
 
@@ -63,7 +63,7 @@ public class SandboxIntegrationExample {
         new AgentscopeRuntimeHost(APP, (payload, ctx) -> {
             OpenAiEventConverter converter = new OpenAiEventConverter("GLM-5.1");
             String message = (String) payload.getOrDefault("message", "");
-            return AGENT.streamEvents(List.of(Msg.builder().textContent(message).build()), ctx)
+            return AGENT.streamEvents(List.of(Msg.builder().textContent(message).build()), ctx.runtimeContext())
                     .map(event -> {
                         String result = converter.convertEventToOpenAiChunk(event);
                         return result == null ? "" : result;

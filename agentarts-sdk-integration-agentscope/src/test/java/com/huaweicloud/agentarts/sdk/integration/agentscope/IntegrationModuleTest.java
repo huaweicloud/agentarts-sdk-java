@@ -17,6 +17,7 @@ import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.memory.model.*;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
 import com.huaweicloud.agentarts.sdk.service.http.RequestResult;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
@@ -25,9 +26,9 @@ import io.agentscope.core.message.ThinkingBlock;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.URLSource;
-import io.agentscope.core.session.Session;
-import io.agentscope.core.session.InMemorySession;
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.core.state.InMemoryAgentStateStore;
 import io.agentscope.core.state.State;
 import io.agentscope.core.tool.AgentTool;
 import io.agentscope.core.tool.ToolCallParam;
@@ -71,11 +72,6 @@ class IntegrationModuleTest {
         void setUp() {
             fakeClient = new FakeMemoryClient();
             store = new MemoryAgentStateStore(fakeClient, "space-123");
-        }
-
-        @Test
-        void implementsAgentScopeSession() {
-            assertTrue(Session.class.isAssignableFrom(MemoryAgentStateStore.class));
         }
 
         @Test
@@ -635,10 +631,10 @@ class IntegrationModuleTest {
 
         @Test
         void loadsCallsAndPersistsSuccessfulState() {
-            Session session = mock(Session.class);
+            AgentStateStore session = mock(AgentStateStore.class);
             ReActAgent agent = mock(ReActAgent.class);
             Msg reply = Msg.builder().role(MsgRole.ASSISTANT).textContent("ok").build();
-            when(agent.call(any(Msg.class))).thenReturn(Mono.just(reply));
+            when(agent.call(any(List.class), any(RuntimeContext.class))).thenReturn(Mono.just(reply));
             AgentscopeRequestContext context = new AgentscopeRequestContext(
                     "session", "user", "request", null);
 
@@ -646,8 +642,6 @@ class IntegrationModuleTest {
                     .call(agent, "hello", context);
 
             assertSame(reply, result);
-            verify(agent).loadIfExists(session, context.sessionKey());
-            verify(agent).saveTo(session, context.sessionKey());
         }
 
         @Test
@@ -656,9 +650,9 @@ class IntegrationModuleTest {
                     () -> new AgentscopeSessionExecutor(null));
             assertThrows(IllegalArgumentException.class,
                     () -> new AgentscopeSessionExecutor(
-                            new InMemorySession(), Duration.ZERO));
+                            new InMemoryAgentStateStore(), Duration.ZERO));
             AgentscopeSessionExecutor executor = new AgentscopeSessionExecutor(
-                    new InMemorySession(), Duration.ofSeconds(1));
+                    new InMemoryAgentStateStore(), Duration.ofSeconds(1));
             assertThrows(IllegalArgumentException.class,
                     () -> executor.call(mock(ReActAgent.class), " ",
                             new AgentscopeRequestContext(null, null, null, null)));

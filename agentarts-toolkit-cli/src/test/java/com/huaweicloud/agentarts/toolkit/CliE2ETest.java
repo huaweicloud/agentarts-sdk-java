@@ -892,10 +892,30 @@ class CliE2ETest {
             assertNotNull(compiler, "Template compilation requires a JDK");
             java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
 
+            StringBuilder classpathBuilder = new StringBuilder();
+            classpathBuilder.append(System.getProperty("java.class.path"));
+            // 1. 获取基础类路径
+            String baseClasspath = System.getProperty("java.class.path");
+            classpathBuilder.append(baseClasspath);
+
+            // 2. 兼容 Maven Surefire/Failsafe 插件在测试时生成的特定类路径属性
+            String surefireClasspath = System.getProperty("surefire.test.class.path");
+            if (surefireClasspath != null && !surefireClasspath.isEmpty()) {
+                classpathBuilder.append(java.io.File.pathSeparator).append(surefireClasspath);
+            }
+
+            // 3. 兜底逻辑：如果在 IDE 中运行，AppClassLoader 的 ClassPath 实际已包含在 java.class.path 中
+            // 但如果是在复杂的多模块 Maven 命令行中，需要把当前类所在目录也加进去
+            java.net.URL currentClassLoc = this.getClass().getProtectionDomain().getCodeSource().getLocation();
+            if (currentClassLoc != null) {
+                classpathBuilder.append(java.io.File.pathSeparator).append(currentClassLoc.getPath());
+            }
+            System.out.println(classpathBuilder.toString());
+
             int exitCode = compiler.run(null, output, output,
                     "-proc:none",
                     "--release", "17",
-                    "-classpath", System.getProperty("java.class.path"),
+                    "-classpath", classpathBuilder.toString(),
                     "-d", classes.toString(),
                     source.toString());
 
@@ -929,7 +949,7 @@ class CliE2ETest {
             assertNotEquals(basicAgent, asAgent, "Different templates should produce different output");
             String agentscopePom = Files.readString(tempDir.resolve("proj-agentscope/pom.xml"));
             assertTrue(agentscopePom.contains("agentarts-sdk-integration-agentscope"));
-            assertTrue(agentscopePom.contains("agentscope-core"));
+            assertTrue(agentscopePom.contains("agentscope-harness"));
             assertFalse(agentscopePom.contains("agentarts-sdk-runtime</artifactId>"));
         }
     }

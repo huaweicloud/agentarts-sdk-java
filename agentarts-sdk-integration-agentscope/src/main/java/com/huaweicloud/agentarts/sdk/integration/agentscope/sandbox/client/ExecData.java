@@ -1,7 +1,12 @@
-package com.huaweicloud.agentarts.examples.client;
+package com.huaweicloud.agentarts.sdk.integration.agentscope.sandbox.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Data model for command execution response from AgentArts Runtime.
+ *
+ * <p>Contains the exit code, stdout, and stderr of a sandbox command execution.</p>
+ */
 public class ExecData {
     @JsonProperty("exit_code")
     private int exitCode;

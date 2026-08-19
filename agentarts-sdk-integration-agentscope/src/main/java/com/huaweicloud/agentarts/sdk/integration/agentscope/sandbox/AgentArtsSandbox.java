@@ -1,6 +1,6 @@
-package com.huaweicloud.agentarts.examples.sandbox;
+package com.huaweicloud.agentarts.sdk.integration.agentscope.sandbox;
 
-import com.huaweicloud.agentarts.examples.client.AgentRunClient;
+import com.huaweicloud.agentarts.sdk.integration.agentscope.sandbox.client.AgentRunClient;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.harness.agent.sandbox.ExecResult;
 import io.agentscope.harness.agent.sandbox.Sandbox;
@@ -11,6 +11,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 
+/**
+ * Sandbox implementation backed by an AgentArts Runtime session.
+ *
+ * <p>Manages the lifecycle of an AgentArts session (start, stop, close)
+ * and delegates command execution to {@link AgentRunClient}. Supports
+ * session resumption via {@link #resume(SandboxState)}.</p>
+ */
 public class AgentArtsSandbox implements Sandbox {
     private static final Logger LOG = LoggerFactory.getLogger(AgentArtsSandbox.class);
 
@@ -41,17 +48,16 @@ public class AgentArtsSandbox implements Sandbox {
 
     @Override
     public void stop() throws Exception {
-//        if (StringUtils.isNotEmpty(sessionId)) {
-//            agentRunClient.stopSession(this.sessionId);
-//            this.running = false;
-//            LOG.info("stop agentarts session:{} success", sessionId);
-//        }
         LOG.info("stop agentarts session:{} success", sessionId);
     }
 
     @Override
     public void close() throws Exception {
-
+        if (StringUtils.isNotEmpty(sessionId)) {
+            agentRunClient.stopSession(this.sessionId);
+            this.running = false;
+        }
+        LOG.info("close agentarts session:{} success", sessionId);
     }
 
     @Override
@@ -81,6 +87,5 @@ public class AgentArtsSandbox implements Sandbox {
 
     @Override
     public void hydrateWorkspace(InputStream archive) throws Exception {
-
     }
 }

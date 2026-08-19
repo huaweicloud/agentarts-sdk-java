@@ -45,3 +45,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# AI assistant local data
+.ai
+AGENTS.md
+codespec/

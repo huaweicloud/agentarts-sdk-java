@@ -1,6 +1,6 @@
-package com.huaweicloud.agentarts.examples.sandbox;
+package com.huaweicloud.agentarts.sdk.integration.agentscope.sandbox;
 
-import com.huaweicloud.agentarts.examples.client.AgentRunClient;
+import com.huaweicloud.agentarts.sdk.integration.agentscope.sandbox.client.AgentRunClient;
 import io.agentscope.harness.agent.sandbox.Sandbox;
 import io.agentscope.harness.agent.sandbox.SandboxClient;
 import io.agentscope.harness.agent.sandbox.SandboxState;
@@ -9,10 +9,18 @@ import io.agentscope.harness.agent.sandbox.snapshot.SandboxSnapshotSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * SandboxClient implementation backed by AgentArts Runtime.
+ *
+ * <p>Provides sandbox lifecycle operations (create, resume, delete) and
+ * state serialization for agentscope sandbox integration. Each sandbox
+ * instance is backed by an {@link AgentRunClient} that communicates with
+ * the AgentArts Runtime data plane.</p>
+ */
 public class AgentArtsBasedSandboxClient implements SandboxClient<AgentArtsSandboxClientOption> {
     private static final Logger LOG = LoggerFactory.getLogger(AgentArtsBasedSandboxClient.class);
 
-    private AgentRunClient agentRunClient;
+    private final AgentRunClient agentRunClient;
 
     public AgentArtsBasedSandboxClient(AgentRunClient agentRunClient) {
         this.agentRunClient = agentRunClient;
@@ -20,7 +28,6 @@ public class AgentArtsBasedSandboxClient implements SandboxClient<AgentArtsSandb
 
     @Override
     public Sandbox create(WorkspaceSpec workspaceSpec, SandboxSnapshotSpec snapshotSpec, AgentArtsSandboxClientOption options) {
-        LOG.info("creating agentarts sandbox");
         return new AgentArtsSandbox(agentRunClient);
     }
 
@@ -33,6 +40,14 @@ public class AgentArtsBasedSandboxClient implements SandboxClient<AgentArtsSandb
 
     @Override
     public void delete(Sandbox sandbox) {
+        if (sandbox == null) {
+            return;
+        }
+        try {
+            sandbox.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

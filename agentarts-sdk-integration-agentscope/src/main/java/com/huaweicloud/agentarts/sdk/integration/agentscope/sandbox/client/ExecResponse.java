@@ -1,11 +1,16 @@
-package com.huaweicloud.agentarts.examples.client;
+package com.huaweicloud.agentarts.sdk.integration.agentscope.sandbox.client;
 
-public class SessionStartResponse {
+/**
+ * Response wrapper for command execution against AgentArts Runtime.
+ *
+ * <p>Contains the response code, message, and {@link ExecData} payload.</p>
+ */
+public class ExecResponse {
     private int code;
 
     private String message;
 
-    private SessionData data;
+    private ExecData data;
 
     public int getCode() {
         return code;
@@ -23,11 +28,11 @@ public class SessionStartResponse {
         this.message = message;
     }
 
-    public SessionData getData() {
+    public ExecData getData() {
         return data;
     }
 
-    public void setData(SessionData data) {
+    public void setData(ExecData data) {
         this.data = data;
     }
 }

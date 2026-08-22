@@ -672,12 +672,17 @@ public class AgentArtsRuntimeApp {
         @Override
         protected void hookOnNext(Object value) {
             String frame;
-            try {
-                frame = "data: " + OBJECT_MAPPER.writeValueAsString(value) + "\n\n";
-            } catch (JsonProcessingException e) {
-                frame = "data: {\"error\":\"SerializationError\",\"message\":\""
-                        + escapeJson(e.getMessage()) + "\"}\n\n";
+            if (value instanceof String strValue) {
+                frame = "data: " + strValue + "\n\n";
+            } else {
+                try {
+                    frame = "data: " + OBJECT_MAPPER.writeValueAsString(value) + "\n\n";
+                } catch (JsonProcessingException e) {
+                    frame = "data: {\"error\":\"SerializationError\",\"message\":\""
+                            + escapeJson(e.getMessage()) + "\"}\n\n";
+                }
             }
+
             writeFrameAndRequestNext(frame);
         }
 

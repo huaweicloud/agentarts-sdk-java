@@ -36,6 +36,7 @@ public class AgentArtsBasedSandboxFilesystemSpec extends SandboxFilesystemSpec {
         this.workspaceRoot = workspaceRoot;
 
         options = new AgentArtsSandboxClientOption();
+        options.setSandboxName(sandboxName);
         options.setBaseUrl(baseUrl);
         options.setApiKey(apiKey);
     }

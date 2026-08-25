@@ -22,7 +22,7 @@ AgentArts Java SDK is a comprehensive toolkit for developing, deploying, and man
 - **Runtime Client** — Dual-plane client for agent lifecycle management: control plane (AK/SK), data plane invoke, raw NDJSON command streaming, file transfer and session lifecycle; `LocalRuntimeClient` for local development
 - **agentscope-java Integration** — stable AgentScope 1.0 API: `AgentscopeRuntimeHost`, request-scoped `AgentscopeRequestContext`, bounded `AgentscopeSessionExecutor`, `MemoryAgentStateStore` implementing `Session`, AgentTool adapters and message conversion
 - **CLI Toolkit** — Picocli-based CLI with 9 top-level commands and 30 grouped subcommands; Python-compatible `launch`, `configure`, `gateway` and concise gateway aliases remain available alongside the original Java names
-- **Spring Boot Starter** — AutoConfiguration for `AgentArtsRuntimeApp`, `@ConfigurationProperties` binding (`agentarts.*`), Actuator HealthIndicator (UP/busy/DOWN)
+- **Spring Boot Starter** — AutoConfiguration for `AgentArtsRuntimeApp`, `@ConfigurationProperties` binding (`agentarts.*`), Actuator HealthIndicator (UP healthy/busy, UNKNOWN not-started)
 - **Bounded Test Suite** — clean local verification executes unit, socket, protocol, CLI and cross-module tests under 30-second per-test, 180-second fork and 15-minute CI limits; cloud tests use an explicit three-tier safety model
 - **Reactor API Integration** — the HTTP transport streams SSE/NDJSON with demand control and cancellation; Memory exposes cold, non-blocking Reactor APIs plus synchronous compatibility wrappers
 
@@ -136,7 +136,8 @@ public class MyAgent {
 # Using CLI (when toolkit-cli is built)
 agentarts dev
 
-# Or run directly
+# Or run directly (from your own project where the runtime dependency was added
+# in step 1; exec:java resolves via Maven's default org.codehaus.mojo plugin-group)
 mvn compile exec:java -Dexec.mainClass="MyAgent"
 ```
 
@@ -202,7 +203,7 @@ app.registerManagedResource(session::close);
 app.runUntilShutdown(8080);
 ```
 
-> Verified compilable & constructible by `AgentscopeIntegrationSnippetTest`. For a complete runnable demo (interactive streaming, multi-turn memory, `@Tool`-annotated tools, server mode), see [`AgentScopeIntegrationExample.java`](agentarts-sdk-examples/src/main/java/com/huaweicloud/agentarts/examples/AgentScopeIntegrationExample.java).
+> `AgentscopeIntegrationSnippetTest` verifies construction of `AgentArtsRuntimeApp`, `AgentscopeRuntimeHost`, `ReActAgent` and `OpenAIChatModel`; the `AgentscopeSessionExecutor.call` wiring shown above is exercised by the runnable demo below, not by the snippet test. For that complete demo (interactive streaming, multi-turn memory, `@Tool`-annotated tools, server mode), see [`AgentScopeIntegrationExample.java`](agentarts-sdk-examples/src/main/java/com/huaweicloud/agentarts/examples/AgentScopeIntegrationExample.java).
 
 ## Spring Boot Starter
 
@@ -229,7 +230,7 @@ agentarts:
     space-id: ${AGENTARTS_MEMORY_SPACE_ID}
 ```
 
-The starter auto-configures `AgentArtsRuntimeApp` and provides an Actuator health indicator at `/actuator/health`.
+The starter auto-configures `AgentArtsRuntimeApp` and provides an Actuator health indicator at `/actuator/health`. Note: `agentarts.runtime.auto-start` is honored via a `@ConditionalOnProperty` gate (it triggers the runtime starter bean) rather than being bound into `AgentArtsProperties`; the bound runtime fields are `port` and `max-concurrency`.
 
 ## Examples
 
@@ -329,7 +330,7 @@ See also the [Python SDK](https://github.com/huaweicloud/agentarts-sdk-python) f
 ## Building from Source
 
 ```bash
-git clone https://github.com/gaotong132/agentarts-sdk-java.git
+git clone https://github.com/huaweicloud/agentarts-sdk-java.git
 cd agentarts-sdk-java
 mvn clean verify
 ```

@@ -11,7 +11,7 @@ package com.huaweicloud.agentarts.sdk.core;
  *       (used for Huawei Cloud standard services via SDK built-in signer).</li>
  *   <li>{@link #V11_HMAC_SHA256} — AgentArts V11-HMAC-SHA256 signing with HKDF
  *       key derivation (used for AgentArts self-developed endpoints: control plane,
- *       data plane, runtime invoke, code interpreter, MCP gateway).</li>
+ *       data plane, runtime invoke, code interpreter, gateway).</li>
  * </ul>
  *
  * @see com.huaweicloud.agentarts.sdk.core.signer.V11Signer

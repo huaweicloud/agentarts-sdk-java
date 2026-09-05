@@ -652,7 +652,7 @@ class CliE2ETest {
             assertTrue(output.contains("invoke"), "Missing 'invoke' in help");
             assertTrue(output.contains("destroy"), "Missing 'destroy' in help");
             assertTrue(output.contains("runtime"), "Missing 'runtime' in help");
-            assertTrue(output.contains("mcp-gateway"), "Missing 'mcp-gateway' in help");
+            assertTrue(output.contains("gateway"), "Missing 'gateway' in help");
             assertTrue(output.contains("memory"), "Missing 'memory' in help");
         }
 
@@ -700,21 +700,21 @@ class CliE2ETest {
         }
 
         @Test
-        void mcpGatewayHelpShowsSubcommands() {
+        void gatewayHelpShowsSubcommands() {
             StringWriter sw = new StringWriter();
-            cli.getSubcommands().get("mcp-gateway").usage(new PrintWriter(sw));
+            cli.getSubcommands().get("gateway").usage(new PrintWriter(sw));
             String output = sw.toString();
 
-            assertTrue(output.contains("create-mcp-gateway"));
-            assertTrue(output.contains("update-mcp-gateway"));
-            assertTrue(output.contains("delete-mcp-gateway"));
-            assertTrue(output.contains("get-mcp-gateway"));
-            assertTrue(output.contains("list-mcp-gateways"));
-            assertTrue(output.contains("create-mcp-gateway-target"));
-            assertTrue(output.contains("update-mcp-gateway-target"));
-            assertTrue(output.contains("delete-mcp-gateway-target"));
-            assertTrue(output.contains("get-mcp-gateway-target"));
-            assertTrue(output.contains("list-mcp-gateway-targets"));
+            assertTrue(output.contains("create-gateway"));
+            assertTrue(output.contains("update-gateway"));
+            assertTrue(output.contains("delete-gateway"));
+            assertTrue(output.contains("get-gateway"));
+            assertTrue(output.contains("list-gateways"));
+            assertTrue(output.contains("create-gateway-target"));
+            assertTrue(output.contains("update-gateway-target"));
+            assertTrue(output.contains("delete-gateway-target"));
+            assertTrue(output.contains("get-gateway-target"));
+            assertTrue(output.contains("list-gateway-targets"));
         }
 
         @Test

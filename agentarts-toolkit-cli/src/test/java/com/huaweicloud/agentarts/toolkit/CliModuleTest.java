@@ -31,7 +31,7 @@ class CliModuleTest {
         @Test
         void topLevelCommandsExist() {
             // Commands: init, config(alias configure), dev, deploy(alias launch),
-            // invoke, destroy, runtime, mcp-gateway, memory
+            // invoke, destroy, runtime, gateway, memory
             Map<String, CommandLine> subs = cli.getSubcommands();
             assertNotNull(subs.get("init"), "init command missing");
             assertNotNull(subs.get("config"), "config command missing");
@@ -40,8 +40,8 @@ class CliModuleTest {
             assertNotNull(subs.get("invoke"), "invoke command missing");
             assertNotNull(subs.get("destroy"), "destroy command missing");
             assertNotNull(subs.get("runtime"), "runtime command missing");
-            assertNotNull(subs.get("mcp-gateway"), "mcp-gateway command missing");
-            assertSame(subs.get("mcp-gateway"), subs.get("gateway"),
+            assertNotNull(subs.get("gateway"), "gateway command missing");
+            assertSame(subs.get("gateway"), subs.get("gateway"),
                     "Python-compatible gateway alias missing");
             assertNotNull(subs.get("memory"), "memory command missing");
         }
@@ -99,20 +99,20 @@ class CliModuleTest {
         }
 
         @Test
-        void mcpGatewaySubcommandsMatchPython() {
+        void gatewaySubcommandsMatchPython() {
             // Java names remain supported; Python gateway names are aliases.
-            CommandLine mcpCmd = cli.getSubcommands().get("mcp-gateway");
+            CommandLine mcpCmd = cli.getSubcommands().get("gateway");
             Map<String, CommandLine> subs = mcpCmd.getSubcommands();
-            assertNotNull(subs.get("create-mcp-gateway"));
-            assertNotNull(subs.get("update-mcp-gateway"));
-            assertNotNull(subs.get("delete-mcp-gateway"));
-            assertNotNull(subs.get("get-mcp-gateway"));
-            assertNotNull(subs.get("list-mcp-gateways"));
-            assertNotNull(subs.get("create-mcp-gateway-target"));
-            assertNotNull(subs.get("update-mcp-gateway-target"));
-            assertNotNull(subs.get("delete-mcp-gateway-target"));
-            assertNotNull(subs.get("get-mcp-gateway-target"));
-            assertNotNull(subs.get("list-mcp-gateway-targets"));
+            assertNotNull(subs.get("create-gateway"));
+            assertNotNull(subs.get("update-gateway"));
+            assertNotNull(subs.get("delete-gateway"));
+            assertNotNull(subs.get("get-gateway"));
+            assertNotNull(subs.get("list-gateways"));
+            assertNotNull(subs.get("create-gateway-target"));
+            assertNotNull(subs.get("update-gateway-target"));
+            assertNotNull(subs.get("delete-gateway-target"));
+            assertNotNull(subs.get("get-gateway-target"));
+            assertNotNull(subs.get("list-gateway-targets"));
             String[] pythonNames = {
                     "create", "update", "delete", "get", "list",
                     "create-target", "update-target", "delete-target",
@@ -168,8 +168,8 @@ class CliModuleTest {
             String[][] commands = {
                     {"destroy", "--agent", "unit-agent"},
                     {"memory", "delete", "unit-space"},
-                    {"mcp-gateway", "delete-mcp-gateway", "unit-gateway"},
-                    {"mcp-gateway", "delete-mcp-gateway-target", "unit-gateway", "unit-target"}
+                    {"gateway", "delete-gateway", "unit-gateway"},
+                    {"gateway", "delete-gateway-target", "unit-gateway", "unit-target"}
             };
             InputStream original = System.in;
             try {
@@ -200,10 +200,10 @@ class CliModuleTest {
 
         @Test
         void mcpDeleteCommandsExposeForceOption() {
-            CommandLine mcp = cli.getSubcommands().get("mcp-gateway");
-            assertNotNull(mcp.getSubcommands().get("delete-mcp-gateway")
+            CommandLine mcp = cli.getSubcommands().get("gateway");
+            assertNotNull(mcp.getSubcommands().get("delete-gateway")
                     .getCommandSpec().optionsMap().get("--force"));
-            assertNotNull(mcp.getSubcommands().get("delete-mcp-gateway-target")
+            assertNotNull(mcp.getSubcommands().get("delete-gateway-target")
                     .getCommandSpec().optionsMap().get("--force"));
         }
     }

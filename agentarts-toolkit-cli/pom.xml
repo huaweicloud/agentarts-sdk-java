@@ -13,7 +13,7 @@
     <artifactId>agentarts-toolkit-cli</artifactId>
 
     <name>AgentArts :: Toolkit CLI</name>
-    <description>CLI toolkit: Picocli command tree for init, dev, config, deploy, invoke, destroy, runtime, mcp-gateway, memory</description>
+    <description>CLI toolkit: Picocli command tree for init, dev, config, deploy, invoke, destroy, runtime, gateway, memory</description>
 
     <dependencies>
         <dependency>
@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>com.huaweicloud.agentarts</groupId>
-            <artifactId>agentarts-sdk-mcpgateway</artifactId>
+            <artifactId>agentarts-sdk-gateway</artifactId>
         </dependency>
         <dependency>
             <groupId>com.huaweicloud.sdk</groupId>

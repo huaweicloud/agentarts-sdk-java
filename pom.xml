@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <name>AgentArts SDK for Java</name>
-    <description>Huawei Cloud AgentArts Java SDK - runtime, identity, memory, tools, MCP gateway, and agentscope integration</description>
+    <description>Huawei Cloud AgentArts Java SDK - runtime, identity, memory, tools, gateway, and agentscope integration</description>
     <url>https://github.com/huaweicloud/agentarts-sdk-java</url>
 
     <licenses>
@@ -28,7 +28,7 @@
         <module>agentarts-sdk-identity</module>
         <module>agentarts-sdk-memory</module>
         <module>agentarts-sdk-tools</module>
-        <module>agentarts-sdk-mcpgateway</module>
+        <module>agentarts-sdk-gateway</module>
         <module>agentarts-sdk-integration-agentscope</module>
         <module>agentarts-toolkit-cli</module>
         <module>agentarts-spring-boot-starter</module>
@@ -128,7 +128,7 @@
             </dependency>
             <dependency>
                 <groupId>com.huaweicloud.agentarts</groupId>
-                <artifactId>agentarts-sdk-mcpgateway</artifactId>
+                <artifactId>agentarts-sdk-gateway</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>

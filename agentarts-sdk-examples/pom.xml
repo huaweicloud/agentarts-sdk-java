@@ -12,7 +12,7 @@
 
     <artifactId>agentarts-sdk-examples</artifactId>
     <properties>
-        <jackson.version>2.18.8</jackson.version>
+        <jackson.version>2.18.9</jackson.version>
         <jacoco.skip>true</jacoco.skip>
     </properties>
 

@@ -361,17 +361,13 @@ public class DeployOperation {
                                                  String region, String platform) {
         // 1. Maven package (produces the fat jar via the shade plugin).
         if (Files.isRegularFile(projectDir.resolve("pom.xml"))) {
-            // On Windows a bare `mvn` (no extension) is a bash shell script that
-            // CreateProcess cannot execute (error 193); `mvn.cmd` is the native
-            // entry point. On POSIX `mvn.cmd` does not exist, so fall back to `mvn`.
-            String mvn = findOnPath("mvn.cmd");
+            // Choose Maven executable based on OS: mvn.cmd on Windows, mvn on other systems
+            String osName = System.getProperty("os.name", "").toLowerCase();
+            String mvnCommand = osName.contains("windows") ? "mvn.cmd" : "mvn";
+            String mvn = findOnPath(mvnCommand);
             if (mvn == null) {
-                mvn = findOnPath("mvn");
-            }
-            if (mvn == null) {
-                // Best-effort: assume mvn is invokable by name on PATH (PATHEXT
-                // resolves `mvn` -> `mvn.cmd` on Windows when no full path is given).
-                mvn = "mvn";
+                // Best-effort: assume mvn is invokable by name on PATH
+                mvn = mvnCommand;
             }
             System.out.println("  Building project artifact (mvn package)...");
             int code = runProcess(Arrays.asList(mvn, "-q", "-B", "-DskipTests", "package"),

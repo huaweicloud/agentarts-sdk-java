@@ -16,7 +16,7 @@ agents:
       organization_auto_create: true
       repository_auto_create: true
     runtime:
-      arch: X86_64
+      arch: arm64
       agent_gateway_id: null
       invoke_config:
         protocol: HTTP

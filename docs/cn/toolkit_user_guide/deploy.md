@@ -24,6 +24,7 @@ agentarts launch [选项]  # 别名
 | `--description` | `-d` | Agent 描述 | — |
 | `--skip-build` | | 跳过构建/推送，直接用配置中的镜像 URL | `false` |
 | `--skip-ssl-verification` | `-k` | 跳过 SSL 证书验证 | `false` |
+| `--platform` | | Docker 构建目标平台（`os/arch` 格式，如 `linux/amd64`、`linux/arm64`） | `linux/arm64` |
 
 ## 部署模式
 
@@ -67,6 +68,12 @@ agentarts deploy --swr-org my-org --swr-repo my-repo
 # 跳过构建（使用已有镜像）
 agentarts deploy --skip-build
 
+# 构建 AMD64 架构镜像
+agentarts deploy --platform linux/amd64
+
+# 构建 ARM64 架构镜像（默认）
+agentarts deploy --platform linux/arm64
+
 # 完整参数
 agentarts deploy -a my-agent -m cloud -t v2.0 --swr-org my-org --swr-repo my-repo \
   -d "Production deployment v2.0"
@@ -84,6 +91,11 @@ agentarts deploy -a my-agent -m cloud -t v2.0 --swr-org my-org --swr-repo my-rep
 - 云模式需要最小权限的 IAM/SWR/AgentArts 凭证，且凭证仅由进程环境注入。
 - 发布前固定镜像 tag 或 digest；生产部署不建议复用可变的 `latest`。
 - `--skip-ssl-verification` 仅用于隔离诊断，不应用于生产。
+- `--platform` 参数用于指定 Docker 构建的目标平台架构。支持的值：
+  - `linux/arm64`（默认）：ARM 64位架构，适用于 ARM 服务器（如华为鲲鹏）或 Apple Silicon
+  - `linux/amd64`：标准 x86_64 架构，适用于大多数云服务器
+  - 其他 Docker 支持的平台格式（`os/arch`）
+  - 注意：构建非本地架构的镜像需要 Docker Buildx 或多架构构建支持
 
 确保配置文件正确：
 

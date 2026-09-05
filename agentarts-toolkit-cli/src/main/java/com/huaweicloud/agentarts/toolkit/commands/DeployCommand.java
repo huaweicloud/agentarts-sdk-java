@@ -42,6 +42,10 @@ public class DeployCommand implements Runnable {
     @Option(names = {"-k", "--skip-ssl-verification"}, description = "Skip SSL certificate verification")
     boolean skipSsl;
 
+    @Option(names = "--platform", description = "Docker build platform (e.g. linux/amd64, linux/arm64)",
+            defaultValue = "linux/arm64")
+    String platform;
+
     @Override
     public void run() {
         if (!"cloud".equals(mode) && !"local".equals(mode)) {
@@ -50,7 +54,7 @@ public class DeployCommand implements Runnable {
         }
         try {
             boolean ok = DeployOperation.deployProject(agentName, mode, imageTag, localPort,
-                    swrOrg, swrRepo, description, skipBuild, skipSsl);
+                    swrOrg, swrRepo, description, skipBuild, skipSsl, platform);
             if (!ok) {
                 CliSupport.fail("deploy did not complete successfully");
             }

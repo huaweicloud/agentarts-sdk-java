@@ -44,7 +44,7 @@ class DeployOperationTest {
         assertEquals(Map.of("enabled", false),
                 request.getInvokeConfig().get("file_transfer_config"));
         assertEquals("ACCURATE_MATCH", request.getInvokeConfig().get("url_match_type"));
-        assertEquals("X86_64", request.getArch());
+        assertEquals("arm64", request.getArch());
         assertNull(request.getEnvironmentVariables());
         assertNull(request.getTags());
     }
@@ -117,15 +117,15 @@ class DeployOperationTest {
         ConfigOperation.setConfigFileOverride(tempDir.resolve("config.yaml").toFile());
 
         assertThrows(IllegalArgumentException.class, () -> DeployOperation.deployProject(
-                null, "unsupported", null, null, null, null, null, false, false));
+                null, "unsupported", null, null, null, null, null, false, false, null));
         assertThrows(IllegalArgumentException.class, () -> DeployOperation.deployProject(
-                null, "cloud", "invalid tag", null, null, null, null, false, false));
+                null, "cloud", "invalid tag", null, null, null, null, false, false, null));
         assertThrows(IllegalArgumentException.class, () -> DeployOperation.deployProject(
-                null, "local", "latest", 0, null, null, null, false, false));
+                null, "local", "latest", 0, null, null, null, false, false, null));
 
         ConfigOperation.saveConfig(new AgentArtsConfigList());
         assertThrows(IllegalStateException.class, () -> DeployOperation.deployProject(
-                null, "cloud", "latest", null, null, null, null, true, false));
+                null, "cloud", "latest", null, null, null, null, true, false, null));
 
         AgentArtsConfigList config = new AgentArtsConfigList();
         AgentArtsConfig malformed = new AgentArtsConfig();
@@ -134,7 +134,7 @@ class DeployOperationTest {
         config.setDefaultAgent("sample");
         ConfigOperation.saveConfig(config);
         assertThrows(IllegalStateException.class, () -> DeployOperation.deployProject(
-                null, "cloud", "latest", null, null, null, null, true, false));
+                null, "cloud", "latest", null, null, null, null, true, false, null));
 
         BaseConfig base = new BaseConfig();
         base.setName("sample");
@@ -142,11 +142,11 @@ class DeployOperationTest {
         malformed.setBase(base);
         ConfigOperation.saveConfig(config);
         assertThrows(IllegalArgumentException.class, () -> DeployOperation.deployProject(
-                null, "local", "latest", null, null, null, null, true, false));
+                null, "local", "latest", null, null, null, null, true, false, null));
         assertThrows(IllegalStateException.class, () -> DeployOperation.deployProject(
-                null, "cloud", "latest", null, null, null, null, true, false));
+                null, "cloud", "latest", null, null, null, null, true, false, null));
         assertThrows(IllegalStateException.class, () -> DeployOperation.deployProject(
-                null, "cloud", "latest", null, null, null, null, false, false));
+                null, "cloud", "latest", null, null, null, null, false, false, null));
 
         base.setName(null);
         base.setRegion(" ");
@@ -155,6 +155,6 @@ class DeployOperationTest {
         malformed.getRuntime().setInvokeConfig(invoke);
         ConfigOperation.saveConfig(config);
         assertThrows(IllegalArgumentException.class, () -> DeployOperation.deployProject(
-                null, "local", null, 9090, null, null, null, true, true));
+                null, "local", null, 9090, null, null, null, true, true, null));
     }
 }

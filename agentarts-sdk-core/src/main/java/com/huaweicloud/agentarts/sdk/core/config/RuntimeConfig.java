@@ -20,7 +20,7 @@ public class RuntimeConfig {
     private String agentGatewayId;
 
     @JsonProperty("arch")
-    private String arch = "X86_64";
+    private String arch = "arm64";
 
     @JsonProperty("execution_agency_name")
     private String executionAgencyName;

@@ -47,11 +47,13 @@ public class DeployOperation {
      * @param description agent description (overrides config)
      * @param skipBuild   skip Docker build/push, use the configured artifact URL directly
      * @param skipSsl     skip SSL verification
+     * @param platform    Docker build platform (e.g. "linux/amd64", "linux/arm64"); defaults to "linux/arm64"
      * @return {@code true} on success
      */
     public static boolean deployProject(String agentName, String mode, String imageTag,
                                          Integer localPort, String swrOrg, String swrRepo,
-                                         String description, boolean skipBuild, boolean skipSsl) throws Exception {
+                                         String description, boolean skipBuild, boolean skipSsl,
+                                         String platform) throws Exception {
         boolean local = "local".equals(mode);
         if (!local && !"cloud".equals(mode)) {
             throw new IllegalArgumentException("mode must be 'cloud' or 'local', got: " + mode);
@@ -62,6 +64,10 @@ public class DeployOperation {
         }
         if (localPort != null && (localPort < 1 || localPort > 65535)) {
             throw new IllegalArgumentException("local port must be between 1 and 65535");
+        }
+        String actualPlatform = (platform != null && !platform.isBlank()) ? platform : "linux/arm64";
+        if (!actualPlatform.matches("^[a-zA-Z0-9][a-zA-Z0-9._-]*/[a-zA-Z0-9][a-zA-Z0-9._-]*$")) {
+            throw new IllegalArgumentException("platform must be in os/arch format (e.g. linux/amd64, linux/arm64)");
         }
         boolean verifySsl = !skipSsl;
 
@@ -114,7 +120,7 @@ public class DeployOperation {
         if (local) {
             String localImage = actualAgentName + ":" + tag;
             System.out.println("Step 1/2: Building Docker image " + localImage);
-            if (!buildProjectAndImage(actualAgentName, tag, projectDir, region)) {
+            if (!buildProjectAndImage(actualAgentName, tag, projectDir, region, actualPlatform)) {
                 return false;
             }
             int port = localPort != null ? localPort : servicePort;
@@ -154,7 +160,7 @@ public class DeployOperation {
 
             String localImage = actualAgentName + ":" + tag;
             System.out.println("Step 1/5: Building Docker image " + localImage);
-            if (!buildProjectAndImage(actualAgentName, tag, projectDir, region)) {
+            if (!buildProjectAndImage(actualAgentName, tag, projectDir, region, actualPlatform)) {
                 return false;
             }
 
@@ -351,7 +357,8 @@ public class DeployOperation {
      * The generated Dockerfile expects {@code target/<name>.jar}, so the project
      * must be packaged first.
      */
-    private static boolean buildProjectAndImage(String agentName, String tag, Path projectDir, String region) {
+    private static boolean buildProjectAndImage(String agentName, String tag, Path projectDir,
+                                                 String region, String platform) {
         // 1. Maven package (produces the fat jar via the shade plugin).
         if (Files.isRegularFile(projectDir.resolve("pom.xml"))) {
             // On Windows a bare `mvn` (no extension) is a bash shell script that
@@ -379,9 +386,9 @@ public class DeployOperation {
         // LIST (with an attestation manifest) which SWR cannot parse — pushes fail
         // with "Invalid image, fail to parse 'manifest.json'". A single-platform
         // build with --provenance=false yields a classic Docker v2 schema-2
-        // manifest that SWR accepts. linux/amd64 matches the runtime target.
+        // manifest that SWR accepts.
         int code = runProcess(Arrays.asList("docker", "build", "--provenance=false",
-                "--platform=linux/amd64", "-t", agentName + ":" + tag, "."),
+                "--platform=" + platform, "-t", agentName + ":" + tag, "."),
                 projectDir.toFile(), null, "docker build");
         if (code != 0) {
             System.err.println("  docker build failed (exit " + code + ")");

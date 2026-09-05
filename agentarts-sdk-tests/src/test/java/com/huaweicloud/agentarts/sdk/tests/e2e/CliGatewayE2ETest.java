@@ -2,7 +2,7 @@ package com.huaweicloud.agentarts.sdk.tests.e2e;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.huaweicloud.agentarts.sdk.core.util.JsonUtils;
-import com.huaweicloud.agentarts.sdk.mcpgateway.MCPGatewayClient;
+import com.huaweicloud.agentarts.sdk.gateway.GatewayClient;
 import com.huaweicloud.agentarts.toolkit.AgentArtsCli;
 import com.huaweicloud.agentarts.toolkit.commands.CliSupport;
 import org.junit.jupiter.api.*;
@@ -20,9 +20,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 /**
  * Gateway CLI e2e tests — exercises the picocli command path exclusively.
  *
- * <p>Every assertion comes from the CLI's stdout JSON; the {@link MCPGatewayClient}
+ * <p>Every assertion comes from the CLI's stdout JSON; the {@link GatewayClient}
  * is constructed only to register LIFO cleanup for resources the CLI creates (the
- * cleanup path is not what is under test). The read-only {@code list-mcp-gateways}
+ * cleanup path is not what is under test). The read-only {@code list-gateways}
  * runs in the default tier; the {@code create → get → delete} lifecycle requires
  * {@code AGENTARTS_TEST_ALLOW_CREATE=1}.</p>
  */
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class CliGatewayE2ETest {
 
     private CommandLine cli;
-    private MCPGatewayClient client;
+    private GatewayClient client;
     private E2EResourceRegistry registry;
     private String runId;
 
@@ -51,7 +51,7 @@ class CliGatewayE2ETest {
         // Suppress picocli's own usage/version output (command bodies use System.out).
         cli.setOut(new PrintWriter(new StringWriter()));
         cli.setErr(new PrintWriter(new StringWriter()));
-        client = new MCPGatewayClient();
+        client = new GatewayClient();
         registry = new E2EResourceRegistry();
         runId = E2EConfig.getRunId();
     }
@@ -62,18 +62,18 @@ class CliGatewayE2ETest {
         if (client != null) client.close();
     }
 
-    /** Read-only {@code mcp-gateway list-mcp-gateways --limit 1} — no resources created. */
+    /** Read-only {@code gateway list-gateways --limit 1} — no resources created. */
     @Test
-    @DisplayName("CLI mcp-gateway list-mcp-gateways --limit 1 prints JSON")
+    @DisplayName("CLI gateway list-gateways --limit 1 prints JSON")
     void test_cli_gateway_list_readonly() {
-        int exit = runCli("mcp-gateway", "list-mcp-gateways", "--limit", "1");
-        // Tolerate 403 when the tenant hasn't enabled the MCP Gateway service.
+        int exit = runCli("gateway", "list-gateways", "--limit", "1");
+        // Tolerate 403 when the tenant hasn't enabled the Gateway service.
         if (exit != 0 && stderr.contains("403")) {
-            assumeTrue(false, "MCP Gateway service not enabled for this tenant");
+            assumeTrue(false, "Gateway service not enabled for this tenant");
         }
-        assertEquals(0, exit, "CLI list-mcp-gateways should exit 0; stderr=" + stderr);
+        assertEquals(0, exit, "CLI list-gateways should exit 0; stderr=" + stderr);
         JsonNode node = parseJson(stdout);
-        assertNotNull(node, "CLI list-mcp-gateways should print JSON; stdout=" + stdout);
+        assertNotNull(node, "CLI list-gateways should print JSON; stdout=" + stdout);
         // The list response must carry a real payload (gateways array / items / total),
         // not just be any JSON object.
         assertTrue(node.has("gateways") || node.has("items") || node.has("total"),
@@ -82,7 +82,7 @@ class CliGatewayE2ETest {
 
     /** {@code create → get → list → delete} through the CLI, asserting the CLI's JSON output. */
     @Test
-    @DisplayName("CLI mcp-gateway create→get→delete lifecycle")
+    @DisplayName("CLI gateway create→get→delete lifecycle")
     void test_cli_gateway_lifecycle() {
         assumeTrue(E2EConfig.allowCreate(),
                 "Set AGENTARTS_TEST_ALLOW_CREATE=1 to run create/delete lifecycle tests");
@@ -90,9 +90,9 @@ class CliGatewayE2ETest {
         String name = E2EHelpers.uniqueName("cli-gw", runId);
 
         // 1. Create via CLI — parse the gateway id from the CLI's JSON stdout.
-        int createExit = runCli("mcp-gateway", "create-mcp-gateway",
+        int createExit = runCli("gateway", "create-gateway",
                 "--name", name, "--description", "aa-it");
-        assertEquals(0, createExit, "CLI create-mcp-gateway should exit 0; stderr=" + stderr);
+        assertEquals(0, createExit, "CLI create-gateway should exit 0; stderr=" + stderr);
         JsonNode created = parseJson(stdout);
         assertNotNull(created, "create should print JSON; stdout=" + stdout);
         String gatewayId = extractId(created);
@@ -100,19 +100,19 @@ class CliGatewayE2ETest {
         // Register SDK cleanup as a safety net (CLI delete below should reclaim it).
         final String id = gatewayId;
         registry.register(() -> {
-            try { client.deleteMcpGateway(id); } catch (Exception ignored) { /* already deleted */ }
+            try { client.deleteGateway(id); } catch (Exception ignored) { /* already deleted */ }
         }, "gateway:" + id);
 
         // 2. Get via CLI — the returned id must match the created one.
-        int getExit = runCli("mcp-gateway", "get-mcp-gateway", id);
-        assertEquals(0, getExit, "CLI get-mcp-gateway should exit 0; stderr=" + stderr);
+        int getExit = runCli("gateway", "get-gateway", id);
+        assertEquals(0, getExit, "CLI get-gateway should exit 0; stderr=" + stderr);
         JsonNode got = parseJson(stdout);
         assertNotNull(got, "get should print JSON; stdout=" + stdout);
         assertEquals(id, extractId(got), "get response id should match; stdout=" + stdout);
 
         // 3. List via CLI — must succeed and return a JSON object.
-        int listExit = runCli("mcp-gateway", "list-mcp-gateways", "--limit", "5");
-        assertEquals(0, listExit, "CLI list-mcp-gateways should exit 0; stderr=" + stderr);
+        int listExit = runCli("gateway", "list-gateways", "--limit", "5");
+        assertEquals(0, listExit, "CLI list-gateways should exit 0; stderr=" + stderr);
         JsonNode listed = parseJson(stdout);
         assertNotNull(listed, "list should print JSON; stdout=" + stdout);
         assertTrue(listed.isObject(), "list response should be a JSON object; stdout=" + stdout);
@@ -135,8 +135,8 @@ class CliGatewayE2ETest {
                         + "; stdout=" + stdout);
 
         // 4. Delete via CLI.
-        int deleteExit = runCli("mcp-gateway", "delete-mcp-gateway", id);
-        assertEquals(0, deleteExit, "CLI delete-mcp-gateway should exit 0; stderr=" + stderr);
+        int deleteExit = runCli("gateway", "delete-gateway", id);
+        assertEquals(0, deleteExit, "CLI delete-gateway should exit 0; stderr=" + stderr);
     }
 
     // ========================

@@ -388,7 +388,7 @@ class CliLocalE2ETest {
         @Override
         public void close() {
             thread.interrupt();
-            try { thread.join(5000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            try { thread.join(10000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
             System.setOut(origOut);
             System.setErr(origErr);
         }

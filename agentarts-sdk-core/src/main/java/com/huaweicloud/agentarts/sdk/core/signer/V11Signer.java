@@ -23,7 +23,7 @@ import java.util.TreeSet;
  *
  * <p>V11-HMAC-SHA256 request signer for AgentArts endpoints.
  * Used for signing HTTP requests to AgentArts control plane, data plane,
- * runtime invoke, code interpreter, and MCP gateway endpoints.</p>
+ * runtime invoke, code interpreter, and gateway endpoints.</p>
  *
  * <h2>Algorithm overview:</h2>
  * <ol>

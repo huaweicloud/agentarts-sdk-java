@@ -44,6 +44,10 @@ public final class DevOperation {
     private static final String DEV_LAUNCHER_JAR = "agentarts-dev-launcher-classpath.jar";
     private static final String DEPENDENCY_CLASSPATH_GOAL =
             "org.apache.maven.plugins:maven-dependency-plugin:3.11.0:build-classpath";
+    /** On Windows the child JVM's file handle on the launcher jar can outlive the
+     * killed process for a few hundred milliseconds; retry deletion briefly. */
+    private static final int ARTIFACT_DELETE_RETRIES = 40;
+    private static final long ARTIFACT_DELETE_RETRY_MILLIS = 50;
 
     private DevOperation() {
     }
@@ -124,6 +128,15 @@ public final class DevOperation {
             Thread.currentThread().interrupt();
         } finally {
             terminateTree(child.getAndSet(null));
+            // The child JVM loaded the launcher classpath jar via its system class
+            // loader; on Windows the file handle can outlive the killed process for a
+            // few hundred milliseconds, blocking deletion of the project directory
+            // (and @TempDir cleanup in tests). Best-effort delete with retries.
+            try {
+                deleteDevArtifacts(project);
+            } catch (RuntimeException ignored) {
+                // Best effort; must not disrupt shutdown.
+            }
             try {
                 Runtime.getRuntime().removeShutdownHook(shutdownHook);
             } catch (IllegalStateException ignored) {
@@ -514,6 +527,36 @@ public final class DevOperation {
             descendants.forEach(ProcessHandle::destroyForcibly);
             process.destroyForcibly();
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /** Best-effort delete of the dev server's ephemeral launcher jar and classpath
+     *  file, retrying briefly so the OS can release a lingering child-JVM file
+     *  handle on Windows. */
+    private static void deleteDevArtifacts(Path project) {
+        Path target = project.resolve("target");
+        List<Path> artifacts = List.of(
+                target.resolve(DEV_LAUNCHER_JAR),
+                target.resolve(DEV_CLASSPATH_FILE));
+        for (Path artifact : artifacts) {
+            deleteWithRetries(artifact);
+        }
+    }
+
+    private static void deleteWithRetries(Path path) {
+        for (int attempt = 0; attempt < ARTIFACT_DELETE_RETRIES; attempt++) {
+            try {
+                Files.deleteIfExists(path);
+                return;
+            } catch (IOException ignored) {
+                // File still held open by a dying child JVM; retry shortly.
+            }
+            try {
+                Thread.sleep(ARTIFACT_DELETE_RETRY_MILLIS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
     }
 

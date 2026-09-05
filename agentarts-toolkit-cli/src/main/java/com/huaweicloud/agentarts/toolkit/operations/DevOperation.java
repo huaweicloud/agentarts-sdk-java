@@ -46,7 +46,7 @@ public final class DevOperation {
             "org.apache.maven.plugins:maven-dependency-plugin:3.11.0:build-classpath";
     /** On Windows the child JVM's file handle on the launcher jar can outlive the
      * killed process for a few hundred milliseconds; retry deletion briefly. */
-    private static final int ARTIFACT_DELETE_RETRIES = 40;
+    private static final int ARTIFACT_DELETE_RETRIES = 60;
     private static final long ARTIFACT_DELETE_RETRY_MILLIS = 50;
 
     private DevOperation() {
@@ -551,11 +551,24 @@ public final class DevOperation {
             } catch (IOException ignored) {
                 // File still held open by a dying child JVM; retry shortly.
             }
+            // NOTE: this runs from runDevServer's finally while the thread's
+            // interrupt flag may still be set (we just caught the InterruptedException
+            // that stopped the server). Thread.sleep would throw immediately and
+            // abort the retries, so sleep uninterruptibly to actually spend the
+            // retry budget waiting for the OS to release the handle.
+            sleepUninterruptibly(ARTIFACT_DELETE_RETRY_MILLIS);
+        }
+    }
+
+    private static void sleepUninterruptibly(long millis) {
+        long deadline = System.nanoTime() + millis * 1_000_000L;
+        long remaining;
+        while ((remaining = deadline - System.nanoTime()) > 0) {
             try {
-                Thread.sleep(ARTIFACT_DELETE_RETRY_MILLIS);
+                Thread.sleep(remaining / 1_000_000L);
             } catch (InterruptedException e) {
+                // Preserve the status but keep sleeping so cleanup completes.
                 Thread.currentThread().interrupt();
-                return;
             }
         }
     }

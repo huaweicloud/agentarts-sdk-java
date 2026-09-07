@@ -35,6 +35,7 @@
         <module>agentarts-sdk-all</module>
         <module>agentarts-sdk-examples</module>
         <module>agentarts-sdk-tests</module>
+        <module>agentarts-distribution</module>
     </modules>
 
     <properties>
@@ -75,6 +76,9 @@
         <mockito.version>5.17.0</mockito.version>
         <test.timeout.default>30 s</test.timeout.default>
         <test.fork.timeout.seconds>180</test.fork.timeout.seconds>
+        <!-- E2E tests (cloud-dependent) are excluded from the default build;
+             run them explicitly with -Pe2e. -->
+        <surefire.excludedGroups>e2e</surefire.excludedGroups>
 
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
@@ -340,6 +344,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar -Xshare:off -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+                        <excludedGroups>${surefire.excludedGroups}</excludedGroups>
                         <forkedProcessTimeoutInSeconds>${test.fork.timeout.seconds}</forkedProcessTimeoutInSeconds>
                         <systemPropertyVariables>
                             <junit.jupiter.execution.timeout.default>${test.timeout.default}</junit.jupiter.execution.timeout.default>
@@ -475,6 +480,13 @@
     </build>
 
     <profiles>
+        <!-- Run cloud-dependent E2E tests: mvn verify -Pe2e -->
+        <profile>
+            <id>e2e</id>
+            <properties>
+                <surefire.excludedGroups></surefire.excludedGroups>
+            </properties>
+        </profile>
         <profile>
             <id>release</id>
             <build>

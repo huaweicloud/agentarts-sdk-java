@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.huaweicloud.agentarts</groupId>
+        <artifactId>agentarts-sdk-java</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>agentarts-distribution</artifactId>
+    <packaging>pom</packaging>
+
+    <name>AgentArts :: Distribution</name>
+    <description>Whole-project ZIP distribution: CLI launchers plus all module JARs</description>
+
+    <build>
+        <plugins>
+            <!-- Build the whole-project ZIP distribution. Placed as the last reactor
+                 module so every sibling module's JAR exists in its target directory
+                 before the assembly runs. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <executions>
+                    <execution>
+                        <id>create-distribution</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/dist.xml</descriptor>
+                            </descriptors>
+                            <appendAssemblyId>true</appendAssemblyId>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

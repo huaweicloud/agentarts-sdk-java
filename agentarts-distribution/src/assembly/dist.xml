@@ -1,0 +1,132 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.2.0 https://maven.apache.org/xsd/assembly-2.2.0.xsd">
+    <id>dist</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>agentarts-sdk-java-${project.version}</baseDirectory>
+
+    <fileSets>
+        <!-- bin launcher scripts from project root -->
+        <fileSet>
+            <directory>${project.basedir}/../bin</directory>
+            <outputDirectory>bin</outputDirectory>
+            <includes>
+                <include>agentarts</include>
+                <include>agentarts.cmd</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+
+        <!-- CLI: thin jar + standalone (fat) jar -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-toolkit-cli/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-toolkit-cli-${project.version}.jar</include>
+                <include>agentarts-toolkit-cli-${project.version}-standalone.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-core -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-core/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-core-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-service -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-service/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-service-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-runtime -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-runtime/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-runtime-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-identity -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-identity/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-identity-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-memory -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-memory/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-memory-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-tools -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-tools/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-tools-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-mcpgateway -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-mcpgateway/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-mcpgateway-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-integration-agentscope -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-integration-agentscope/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-integration-agentscope-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-spring-boot-starter -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-spring-boot-starter/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-spring-boot-starter-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-all -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-all/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-all-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+
+        <!-- agentarts-sdk-examples -->
+        <fileSet>
+            <directory>${project.basedir}/../agentarts-sdk-examples/target</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>agentarts-sdk-examples-${project.version}.jar</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</assembly>

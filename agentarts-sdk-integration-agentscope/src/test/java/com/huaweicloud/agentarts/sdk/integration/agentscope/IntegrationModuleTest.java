@@ -11,8 +11,8 @@ import com.huaweicloud.agentarts.sdk.integration.agentscope.runtime.AgentscopeSe
 import com.huaweicloud.agentarts.sdk.integration.agentscope.state.AgentStateStoreException;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.state.MemoryAgentStateStore;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.CodeInterpreterTool;
-import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.MCPGatewayTool;
-import com.huaweicloud.agentarts.sdk.mcpgateway.MCPGatewayClient;
+import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.GatewayTool;
+import com.huaweicloud.agentarts.sdk.gateway.GatewayClient;
 import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.memory.model.*;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
@@ -330,34 +330,34 @@ class IntegrationModuleTest {
     }
 
     // ========================
-    // MCPGatewayTool — AgentTool interface contract
+    // GatewayTool — AgentTool interface contract
     // ========================
 
     @Nested
-    @DisplayName("MCPGatewayTool implements AgentTool")
-    class MCPGatewayToolTests {
+    @DisplayName("GatewayTool implements AgentTool")
+    class GatewayToolTests {
 
         @Test
         void implementsAgentTool() {
-            assertTrue(AgentTool.class.isAssignableFrom(MCPGatewayTool.class));
+            assertTrue(AgentTool.class.isAssignableFrom(GatewayTool.class));
         }
 
         @Test
         void hasCorrectName() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
-            assertEquals("mcp_gateway_call", tool.getName());
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
+            assertEquals("gateway_call", tool.getName());
         }
 
         @Test
         void hasDescription() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
             assertNotNull(tool.getDescription());
             assertFalse(tool.getDescription().isEmpty());
         }
 
         @Test
         void parametersSchemaIsValid() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
             Map<String, Object> params = tool.getParameters();
             assertEquals("object", params.get("type"));
             assertNotNull(params.get("properties"));
@@ -373,28 +373,28 @@ class IntegrationModuleTest {
 
         @Test
         void implementsCurrentAgentToolContract() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
             assertInstanceOf(AgentTool.class, tool);
         }
 
         @Test
         void getOutputSchemaReturnsNull() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
             assertNull(tool.getOutputSchema());
         }
 
         @Test
         void resolvesGatewayEndpointAndInvokesRealMcpTransport() throws Exception {
             String gatewayId = "01234567-89ab-cdef-0123-456789abcdef";
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            when(gatewayClient.getMcpGateway(gatewayId)).thenReturn(RequestResult.builder()
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            when(gatewayClient.getGateway(gatewayId)).thenReturn(RequestResult.builder()
                     .success(true)
                     .statusCode(200)
                     .data(JsonUtils.MAPPER.readTree(
                             "{\"endpoint_url\":\"https://gateway.example.test\"}"))
                     .build());
             AtomicReference<List<Object>> invocation = new AtomicReference<>();
-            MCPGatewayTool tool = new MCPGatewayTool(gatewayClient,
+            GatewayTool tool = new GatewayTool(gatewayClient,
                     (endpoint, authorization, sessionId, toolName, arguments) -> {
                         invocation.set(List.of(endpoint, authorization, sessionId, toolName, arguments));
                         return Mono.just(ToolResultBlock.text("real MCP result"));
@@ -421,8 +421,8 @@ class IntegrationModuleTest {
 
         @Test
         void rejectsInvalidGatewayIdBeforeNetworkCall() {
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            MCPGatewayTool tool = new MCPGatewayTool(gatewayClient,
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            GatewayTool tool = new GatewayTool(gatewayClient,
                     (endpoint, authorization, sessionId, toolName, arguments) ->
                             Mono.error(new AssertionError("must not invoke")));
 
@@ -437,8 +437,8 @@ class IntegrationModuleTest {
 
         @Test
         void rejectsOversizedToolInputBeforeNetworkCall() {
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            MCPGatewayTool tool = new MCPGatewayTool(gatewayClient);
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            GatewayTool tool = new GatewayTool(gatewayClient);
 
             ToolResultBlock result = tool.callAsync(ToolCallParam.builder()
                     .input(Map.of(
@@ -454,14 +454,14 @@ class IntegrationModuleTest {
         @Test
         void preservesCustomInvokerResult() throws Exception {
             String gatewayId = "01234567-89ab-cdef-0123-456789abcdef";
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            when(gatewayClient.getMcpGateway(gatewayId)).thenReturn(RequestResult.builder()
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            when(gatewayClient.getGateway(gatewayId)).thenReturn(RequestResult.builder()
                     .success(true)
                     .statusCode(200)
                     .data(JsonUtils.MAPPER.readTree(
                             "{\"endpoint_url\":\"https://gateway.example.test\"}"))
                     .build());
-            MCPGatewayTool tool = new MCPGatewayTool(gatewayClient,
+            GatewayTool tool = new GatewayTool(gatewayClient,
                     (endpoint, authorization, sessionId, toolName, arguments) ->
                             Mono.just(ToolResultBlock.text("still running")));
 
@@ -475,9 +475,9 @@ class IntegrationModuleTest {
 
         @Test
         void rejectsNullDependencies() {
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            assertThrows(NullPointerException.class, () -> new MCPGatewayTool(null));
-            assertThrows(NullPointerException.class, () -> new MCPGatewayTool(gatewayClient, null));
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            assertThrows(NullPointerException.class, () -> new GatewayTool(null));
+            assertThrows(NullPointerException.class, () -> new GatewayTool(gatewayClient, null));
         }
     }
 

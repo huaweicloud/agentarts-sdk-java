@@ -45,7 +45,7 @@
         </dependency>
         <dependency>
             <groupId>com.huaweicloud.agentarts</groupId>
-            <artifactId>agentarts-sdk-mcpgateway</artifactId>
+            <artifactId>agentarts-sdk-gateway</artifactId>
         </dependency>
 
         <!-- Integration modules (optional) -->

@@ -21,7 +21,7 @@ import picocli.CommandLine.Option;
  *   invoke        — Invoke agent with JSON payload
  *   destroy       — Destroy agent from cloud
  *   runtime       — Cloud runtime operations (invoke, exec-command, upload-files, download-files, start-session, stop-session)
- *   mcp-gateway   — MCP Gateway management
+ *   gateway   — Gateway management
  *   memory        — Memory space management
  * </pre>
  */
@@ -38,7 +38,7 @@ import picocli.CommandLine.Option;
         InvokeCommand.class,
         DestroyCommand.class,
         RuntimeCommand.class,
-        McpGatewayCommand.class,
+        GatewayCommand.class,
         MemoryCommand.class
     }
 )

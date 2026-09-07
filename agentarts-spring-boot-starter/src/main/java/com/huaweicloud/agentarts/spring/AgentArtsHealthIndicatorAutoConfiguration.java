@@ -1,6 +1,5 @@
 package com.huaweicloud.agentarts.spring;
 
-import com.huaweicloud.agentarts.sdk.core.PingStatus;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
@@ -15,11 +14,11 @@ import org.springframework.context.annotation.Bean;
  * <p>Reports the runtime server health via {@code /actuator/health}.
  * Only activated when Spring Boot Actuator is on the classpath.</p>
  *
- * <p>Health mapping:</p>
+ * <p>Health mapping (based on the bound runtime server port):</p>
  * <ul>
- *   <li>{@link PingStatus#HEALTHY} → {@code UP}</li>
- *   <li>{@link PingStatus#HEALTHY_BUSY} → {@code UP} with detail "busy"</li>
- *   <li>{@link PingStatus#UNHEALTHY} → {@code DOWN}</li>
+ *   <li>Port bound, no running tasks → {@code UP} with detail "healthy"</li>
+ *   <li>Port bound, tasks running → {@code UP} with detail "busy"</li>
+ *   <li>Port not bound (server not started) → {@code UNKNOWN} with detail "not_started"</li>
  * </ul>
  */
 @AutoConfiguration(after = AgentArtsAutoConfiguration.class)

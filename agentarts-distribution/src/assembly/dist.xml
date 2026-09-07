@@ -84,12 +84,12 @@
             </includes>
         </fileSet>
 
-        <!-- agentarts-sdk-mcpgateway -->
+        <!-- agentarts-sdk-gateway -->
         <fileSet>
-            <directory>${project.basedir}/../agentarts-sdk-mcpgateway/target</directory>
+            <directory>${project.basedir}/../agentarts-sdk-gateway/target</directory>
             <outputDirectory>lib</outputDirectory>
             <includes>
-                <include>agentarts-sdk-mcpgateway-${project.version}.jar</include>
+                <include>agentarts-sdk-gateway-${project.version}.jar</include>
             </includes>
         </fileSet>
 

@@ -26,11 +26,6 @@
             <artifactId>agentarts-sdk-integration-agentscope</artifactId>
             <version>${revision}</version>
         </dependency>
-        <dependency>
-            <groupId>com.huaweicloud.agentarts</groupId>
-            <artifactId>agentarts-toolkit-cli</artifactId>
-            <version>${revision}</version>
-        </dependency>
 
         <!-- agentscope-core (provided in integration module, must be explicit here) -->
         <dependency>

@@ -30,7 +30,6 @@
         <module>agentarts-sdk-tools</module>
         <module>agentarts-sdk-gateway</module>
         <module>agentarts-sdk-integration-agentscope</module>
-        <module>agentarts-toolkit-cli</module>
         <module>agentarts-spring-boot-starter</module>
         <module>agentarts-sdk-all</module>
         <module>agentarts-sdk-examples</module>
@@ -134,11 +133,6 @@
             <dependency>
                 <groupId>com.huaweicloud.agentarts</groupId>
                 <artifactId>agentarts-sdk-integration-agentscope</artifactId>
-                <version>${revision}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.huaweicloud.agentarts</groupId>
-                <artifactId>agentarts-toolkit-cli</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>

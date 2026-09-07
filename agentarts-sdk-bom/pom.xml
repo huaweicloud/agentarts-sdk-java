@@ -73,11 +73,6 @@
             </dependency>
             <dependency>
                 <groupId>com.huaweicloud.agentarts</groupId>
-                <artifactId>agentarts-toolkit-cli</artifactId>
-                <version>${revision}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.huaweicloud.agentarts</groupId>
                 <artifactId>agentarts-spring-boot-starter</artifactId>
                 <version>${revision}</version>
             </dependency>

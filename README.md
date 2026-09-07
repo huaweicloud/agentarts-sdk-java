@@ -1,91 +1,76 @@
 # Huawei Cloud AgentArts SDK for Java
 
+**[English](README.md)** | [中文](README_zh.md)
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Java](https://img.shields.io/badge/Java-17%2B-brightgreen.svg)](https://openjdk.org/)
 [![Maven](https://img.shields.io/badge/Maven-3.9%2B-orange.svg)](https://maven.apache.org/)
-[![Tests](https://img.shields.io/badge/tests-mvn%20verify-blue.svg)]()
 
 Build, deploy and manage AI agents with Huawei Cloud capabilities.
 
 ## Overview
 
-AgentArts Java SDK is a comprehensive toolkit for developing, deploying, and managing AI agents on Huawei Cloud. It integrates natively with [agentscope-java](https://github.com/agentscope-ai/agentscope-java) (Reactor-based agent framework). See also the [Python SDK](https://github.com/huaweicloud/agentarts-sdk-python).
+The AgentArts Java SDK is a toolkit for developing, deploying, and managing AI
+agents on Huawei Cloud. You implement only the agent logic; the SDK provides
+the HTTP runtime, cloud authentication, built-in tools (memory, code
+interpreter, gateway), and a CLI for the full agent lifecycle. It integrates
+natively with [agentscope-java](https://github.com/agentscope-ai/agentscope-java)
+and ships an optional Spring Boot starter.
+
+> **The `agentarts` CLI is provided by the [Python SDK](https://github.com/huaweicloud/agentarts-sdk-python).**
+> This Java repository no longer ships its own CLI. Install the CLI once (a
+> standalone binary or `pip`) and it drives the full lifecycle — including
+> Java agents — via `init`, `dev`, `deploy`, `invoke`, `destroy`. See
+> [Install the CLI](#install-the-cli) below.
 
 ### Key Features
 
-- **V11-HMAC-SHA256 Signing** — Full Java implementation of Huawei Cloud V11 signer with HKDF key derivation; dual signing mode support (V11 + SDK-HMAC-SHA256); `@RequireAccessToken` / `@RequireApiKey` / `@RequireStsToken` auth annotations with JDK Proxy interceptor
-- **Vert.x Runtime Server** — HTTP server exposing `POST /invocations` (JSON + SSE streaming), `GET /ping` (health check with HEALTHY/HEALTHY_BUSY/UNHEALTHY), `WS /ws` (WebSocket); Semaphore-based concurrency control; `RequestContext` + `AgentArtsRuntimeContext` (7-field ThreadLocal with leak prevention)
-- **Cloud Identity** — Workload identity CRUD, access token issuance (forUserId/forJwt), three credential provider types (OAuth2/API Key/STS), resource token retrieval, `TokenPoller` for async OAuth2 flows, `.agent_identity.json` local bootstrap
-- **Memory Service** — Dual-plane client (AK/SK control plane + API Key data plane); space/session/message/memory CRUD; `MemorySession` convenience wrapper; OpenAPI "parts" format serialization; search with filters (query, topK, minScore)
-- **Code Interpreter** — Sandboxed code execution client; `CodeSession` AutoCloseable context manager; execute code/commands, upload/download files, install packages, clear context
-- **Gateway** — Gateway and target CRUD management via AK/SK signed requests (10 API methods)
-- **Runtime Client** — Dual-plane client for agent lifecycle management: control plane (AK/SK), data plane invoke, raw NDJSON command streaming, file transfer and session lifecycle; `LocalRuntimeClient` for local development
-- **agentscope-java Integration** — stable AgentScope 1.0 API: `AgentscopeRuntimeHost`, request-scoped `AgentscopeRequestContext`, bounded `AgentscopeSessionExecutor`, `MemoryAgentStateStore` implementing `Session`, AgentTool adapters and message conversion
-- **CLI Toolkit** — Picocli-based CLI with 9 top-level commands and 30 grouped subcommands; Python-compatible `launch`, `configure`, `gateway` and concise gateway aliases remain available alongside the original Java names
-- **Spring Boot Starter** — AutoConfiguration for `AgentArtsRuntimeApp`, `@ConfigurationProperties` binding (`agentarts.*`), Actuator HealthIndicator (UP healthy/busy, UNKNOWN not-started)
-- **Bounded Test Suite** — clean local verification executes unit, socket, protocol, CLI and cross-module tests under 30-second per-test, 180-second fork and 15-minute CI limits; cloud tests use an explicit three-tier safety model
-- **Reactor API Integration** — the HTTP transport streams SSE/NDJSON with demand control and cancellation; Memory exposes cold, non-blocking Reactor APIs plus synchronous compatibility wrappers
+- **Wrap Any Agent as an HTTP Server** — expose `POST /invocations` (JSON + SSE streaming), `GET /ping` (health check), and `WS /ws` (WebSocket) via `AgentArtsRuntimeApp`
+- **One-Command Lifecycle** — `init`, `dev`, `deploy`, `invoke`, `destroy` through the `agentarts` CLI (installed from the Python SDK)
+- **Built-in Cloud Tools** — Memory (conversation memory), Code Interpreter (sandboxed execution), Gateway (gateway & target CRUD)
+- **Cloud Identity** — workload identity, AK/SK signing, API Key and STS credential providers
+- **AgentScope Integration** — request-scoped context, bounded per-session execution, `@Tool` adapters, message conversion
+- **Spring Boot Starter** — auto-configuration for `AgentArtsRuntimeApp` with Actuator health indicator
+- **Reactive** — Vert.x + Project Reactor streaming with backpressure and cancellation
 
 ## Module Structure
 
 ```
 agentarts-sdk-java/
-├── agentarts-sdk-bom/                   # Bill of Materials (dependency versions)
-├── agentarts-sdk-core/                  # Constants, V11Signer, annotations, config, exceptions
-├── agentarts-sdk-service/               # BaseHttpClient, IdentityServiceClient, IAMServiceClient, SWRServiceClient, RuntimeClient
-├── agentarts-sdk-runtime/               # Vert.x HttpServer: /invocations, /ping, /ws, SSE, concurrency control
-├── agentarts-sdk-identity/              # IdentityClient, auth annotations, TokenPoller, .agent_identity.json
-├── agentarts-sdk-memory/                # MemoryClient (dual-plane: control + data), MemorySession
-├── agentarts-sdk-tools/                 # CodeInterpreterClient, CodeSession
-├── agentarts-sdk-gateway/            # GatewayClient, Gateway/Target/ToolCall models
-├── agentarts-sdk-integration-agentscope/# AgentScope 1.0 bridge, Session, bounded execution, tools
-├── agentarts-toolkit-cli/               # Picocli CLI + standalone executable JAR
-├── agentarts-spring-boot-starter/       # Spring Boot AutoConfiguration + Properties + HealthIndicator
-├── agentarts-sdk-all/                   # Aggregator (all modules)
-├── agentarts-sdk-examples/              # Example projects (basic-runtime, agentscope-integration)
-└── agentarts-sdk-tests/                 # Cross-module and opt-in cloud E2E tests
+├── agentarts-sdk-bom/                    # Bill of Materials (dependency versions)
+├── agentarts-sdk-core/                   # Constants, V11 signer, auth annotations, config
+├── agentarts-sdk-service/                # Base HTTP client, IAM/SWR/runtime service clients
+├── agentarts-sdk-runtime/                # Vert.x runtime server: /invocations, /ping, /ws, SSE
+├── agentarts-sdk-identity/               # Identity client, credential providers, token polling
+├── agentarts-sdk-memory/                 # Memory client (control + data plane), MemorySession
+├── agentarts-sdk-tools/                  # Code Interpreter client, CodeSession
+├── agentarts-sdk-gateway/                # Gateway client, gateway/target CRUD models
+├── agentarts-sdk-integration-agentscope/ # AgentScope bridge, session, tools
+├── agentarts-spring-boot-starter/        # Spring Boot auto-configuration + health indicator
+├── agentarts-sdk-all/                    # Aggregator (all modules)
+├── agentarts-sdk-examples/               # Runnable example projects
+└── agentarts-sdk-tests/                  # Cross-module and opt-in cloud E2E tests
 ```
 
-## Documentation
+## Install the CLI
 
-### SDK 用户指南（中文）
+The `agentarts` CLI is the single entry point for the agent lifecycle and is
+maintained in the [Python SDK repository](https://github.com/huaweicloud/agentarts-sdk-python).
+It bundles its own Python interpreter, so **you do not need Python installed**
+to use it. For Java agents it shells out to your local JDK + Maven.
 
-| 文档 | 说明 |
-|---|---|
-| [环境变量配置](docs/cn/sdk_user_guide/environment_variables.md) | 所有环境变量、优先级链、Java 常量对照表 |
-| [运行时 SDK](docs/cn/sdk_user_guide/runtime_user_guide.md) | AgentArtsRuntimeApp 服务端 + RuntimeClient 双平面客户端 + LocalRuntimeClient 本地开发 |
-| [Memory SDK](docs/cn/sdk_user_guide/memory_user_guide.md) | MemoryClient 双平面架构、MemorySession、完整 API（25+ 方法） |
-| [Code Interpreter SDK](docs/cn/sdk_user_guide/tools_user_guide.md) | CodeInterpreterClient、CodeSession、17 种操作方法 |
-| [Gateway SDK](docs/cn/sdk_user_guide/gateway_user_guide.md) | GatewayClient 网关/目标 CRUD、RequestResult |
-| [Agent Identity SDK](docs/cn/sdk_user_guide/agent_identity_guide.md) | IdentityClient、注解模式、OAuth2/API Key/STS 三种凭证 |
+**Linux / macOS — one-line install:**
 
-### 测试指南（中文）
+```bash
+curl -fsSL https://raw.githubusercontent.com/huaweicloud/agentarts-sdk-python/main/install.sh | sh
+```
 
-| 文档 | 说明 |
-|---|---|
-| [E2E 测试指南](docs/cn/e2e_testing_guide.md) | 三层安全模型、运行方法、与 Python SDK 的用例逐条对比、覆盖范围、凭证安全约定 |
+**Other options** (Windows, manual download, or `pip install agentarts-sdk`):
+see the [Python SDK README](https://github.com/huaweicloud/agentarts-sdk-python#installation).
 
-### CLI 工具指南（中文）
+## Wrapping Your Agent as an HTTP Server
 
-| 文档 | 命令 |
-|---|---|
-| [**CLI 安装与前置步骤**](docs/cn/toolkit_user_guide/cli_overview.md) | 构建 jar、`bin/agentarts` 启动器、PATH 配置——使用 CLI 前必读 |
-| [init](docs/cn/toolkit_user_guide/init.md) | 初始化项目 |
-| [config](docs/cn/toolkit_user_guide/config.md) | 配置管理（8 个子命令） |
-| [dev](docs/cn/toolkit_user_guide/dev.md) | 本地开发服务器 |
-| [deploy](docs/cn/toolkit_user_guide/deploy.md) | 云端/本地部署 |
-| [invoke](docs/cn/toolkit_user_guide/invoke.md) | 调用 Agent |
-| [destroy](docs/cn/toolkit_user_guide/destroy.md) | 销毁 Agent |
-| [runtime](docs/cn/toolkit_user_guide/runtime_cli.md) | 运行时管理（6 个子命令） |
-| [gateway / gateway](docs/cn/toolkit_user_guide/gateway_cli.md) | MCP 网关管理（10 个子命令及兼容别名） |
-
-## Quick Start
-
-### Prerequisites
-
-- JDK 17+
-- Maven 3.9+
-- Huawei Cloud account with AK/SK credentials
+`AgentArtsRuntimeApp` wraps your agent logic as a standard HTTP server. You only implement the handler; the SDK handles HTTP, request parsing, and response formatting.
 
 ### 1. Add Dependencies
 
@@ -97,7 +82,7 @@ agentarts-sdk-java/
 </dependency>
 ```
 
-### 2. Create Your Agent
+### 2. Implement Your Agent
 
 ```java
 import com.huaweicloud.agentarts.sdk.core.PingStatus;
@@ -121,27 +106,26 @@ public class MyAgent {
 
     public static void main(String[] args) {
         MyAgent agent = new MyAgent();
-        // Programmatic registration. (app.run() does not scan @Entrypoint/@Ping
-        // annotations — use `agentarts dev` for annotation-based auto-wiring.)
+        // Programmatic registration. (Use `agentarts dev` for annotation-based
+        // auto-wiring of @Entrypoint / @Ping.)
         agent.app.setEntrypoint(agent::handle);
         agent.app.setPingHandler(agent::healthCheck);
-        agent.app.runUntilShutdown(8080);
+        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
+        String host = System.getenv().getOrDefault("HOST", "0.0.0.0");
+        agent.app.runUntilShutdown(port, host);
     }
 }
 ```
 
-### 3. Run Locally
+### 3. Run and Test
 
 ```bash
-# Using CLI (when toolkit-cli is built)
+# Using the CLI (recommended) — compiles your project and runs the agent
 agentarts dev
 
-# Or run directly (from your own project where the runtime dependency was added
-# in step 1; exec:java resolves via Maven's default org.codehaus.mojo plugin-group)
+# Or run directly
 mvn compile exec:java -Dexec.mainClass="MyAgent"
 ```
-
-### 4. Test
 
 ```bash
 # Health check
@@ -155,7 +139,86 @@ curl -X POST http://localhost:8080/invocations \
 # {"result":"Hello from Java agent: Hello!"}
 ```
 
-## agentscope-java Integration
+## Quick Start
+
+### Prerequisites
+
+- JDK 17+
+- Maven 3.9+
+- The `agentarts` CLI (see [Install the CLI](#install-the-cli))
+- Huawei Cloud account with AK/SK credentials
+
+```bash
+export HUAWEICLOUD_SDK_AK="your-access-key"
+export HUAWEICLOUD_SDK_SK="your-secret-key"
+export HUAWEICLOUD_SDK_REGION="cn-southwest-2"
+```
+
+> Get your AK/SK from [Huawei Cloud Console](https://console.huaweicloud.com/) → My Credentials → Access Keys.
+
+### 1. Initialize a Project
+
+```bash
+# Java project (Maven + JDK17 + agentarts-sdk-runtime)
+agentarts init -n my-agent -t java-basic -r cn-southwest-2
+# AgentScope-based Java agent:
+# agentarts init -n my-agent -t java-agentscope -r cn-southwest-2
+```
+
+This scaffolds `my-agent/` with a `pom.xml`, a scaffolded `Agent.java`, and an `.agentarts_config.yaml` (with `language: java17`).
+
+### 2. Develop Locally
+
+```bash
+agentarts dev -p 8080
+# The CLI runs `mvn compile`, launches a child JVM, and watches sources for
+# hot reload. Server runs at http://127.0.0.1:8080
+#   POST /invocations  — invoke the agent
+#   GET  /ping         — health check
+```
+
+### 3. Configure
+
+```bash
+agentarts config set base.region cn-north-4
+agentarts config set-env LOG_LEVEL INFO
+agentarts config list
+```
+
+> Already have your own Java project? Skip `init` and run
+> `agentarts config -n my-agent -e com.example.MyAgent --dependency-file pom.xml`
+> to generate just the `.agentarts_config.yaml` + Dockerfile.
+
+### 4. Deploy and Invoke
+
+```bash
+agentarts deploy -a my-agent -m cloud -t v1.0
+agentarts invoke '{"message": "Hello!"}' -a my-agent -m local -p 8080
+agentarts destroy -a my-agent -y
+```
+
+## CLI Commands Reference
+
+The `agentarts` CLI (from the Python SDK) supports both Python and Java agents.
+For Java agents it uses `language: java17` and shells out to Maven/JDK.
+
+| Command | Description |
+| --- | --- |
+| `agentarts init` | Initialize a new agent project (`-t java-basic` / `-t java-agentscope` for Java) |
+| `agentarts dev` | Start the local development server (compiles + runs your agent, hot reload) |
+| `agentarts config` | Configure SDK settings (alias: `configure`) |
+| `agentarts deploy` | Deploy an agent to Huawei Cloud (alias: `launch`) |
+| `agentarts invoke` | Invoke an agent |
+| `agentarts destroy` | Remove a deployed agent |
+| `agentarts runtime` | Manage runtime resources (6 subcommands) |
+| `agentarts gateway` | Manage gateways and targets (alias: `mcp-gateway`) |
+| `agentarts memory` | Manage Memory Spaces and sessions (6 subcommands) |
+
+Full CLI documentation lives in the [Python SDK repository](https://github.com/huaweicloud/agentarts-sdk-python#readme).
+
+## AgentScope Integration
+
+For agents built on [agentscope-java](https://github.com/agentscope-ai/agentscope-java), use the integration module — it bridges the AgentArts HTTP runtime with AgentScope's `ReActAgent`, request-scoped context, bounded per-session execution, and `@Tool` adapters.
 
 ```xml
 <dependency>
@@ -182,7 +245,7 @@ OpenAIChatModel model = OpenAIChatModel.builder()
     .stream(true)
     .build();
 Toolkit toolkit = new Toolkit();
-Session session = new InMemorySession(); // or MemoryAgentStateStore
+Session session = new InMemorySession();
 AgentscopeSessionExecutor executor = new AgentscopeSessionExecutor(session);
 
 AgentArtsRuntimeApp app = new AgentArtsRuntimeApp();
@@ -203,11 +266,11 @@ app.registerManagedResource(session::close);
 app.runUntilShutdown(8080);
 ```
 
-> `AgentscopeIntegrationSnippetTest` verifies construction of `AgentArtsRuntimeApp`, `AgentscopeRuntimeHost`, `ReActAgent` and `OpenAIChatModel`; the `AgentscopeSessionExecutor.call` wiring shown above is exercised by the runnable demo below, not by the snippet test. For that complete demo (interactive streaming, multi-turn memory, `@Tool`-annotated tools, server mode), see [`AgentScopeIntegrationExample.java`](agentarts-sdk-examples/src/main/java/com/huaweicloud/agentarts/examples/AgentScopeIntegrationExample.java).
+For a complete runnable demo (interactive streaming, multi-turn memory, `@Tool`-annotated tools, server mode), see [`AgentScopeIntegrationExample.java`](agentarts-sdk-examples/src/main/java/com/huaweicloud/agentarts/examples/AgentScopeIntegrationExample.java).
 
 ## Spring Boot Starter
 
-For Spring Boot 3.x applications, use the optional starter for auto-configuration:
+For Spring Boot 3.x applications, use the optional starter:
 
 ```xml
 <dependency>
@@ -230,45 +293,14 @@ agentarts:
     space-id: ${AGENTARTS_MEMORY_SPACE_ID}
 ```
 
-The starter auto-configures `AgentArtsRuntimeApp` and provides an Actuator health indicator at `/actuator/health`. Note: `agentarts.runtime.auto-start` is honored via a `@ConditionalOnProperty` gate (it triggers the runtime starter bean) rather than being bound into `AgentArtsProperties`; the bound runtime fields are `port` and `max-concurrency`.
-
-## Examples
-
-The `agentarts-sdk-examples` module contains runnable example applications:
-
-### Basic Runtime Example
-
-A standalone agent using the Vert.x runtime with sync and SSE streaming support:
-
-```bash
-mvn compile exec:java -pl agentarts-sdk-examples \
-  -Dexec.mainClass="com.huaweicloud.agentarts.examples.BasicRuntimeExample"
-
-# Test:
-curl http://localhost:8080/ping
-curl -X POST http://localhost:8080/invocations \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Hello!"}'
-```
-
-### agentscope Integration Example
-
-The complete runnable demo — [`AgentScopeIntegrationExample.java`](agentarts-sdk-examples/src/main/java/com/huaweicloud/agentarts/examples/AgentScopeIntegrationExample.java) — builds a `ReActAgent` with an OpenAI-compatible model, `@Tool`-annotated tools, optional `MemoryAgentStateStore` persistence, bounded per-session execution, and HTTP Runtime hosting via `AgentscopeRuntimeHost`:
-
-```bash
-export HUAWEICLOUD_SDK_MEMORY_API_KEY=your-api-key
-export AGENTARTS_MEMORY_SPACE_ID=your-space-id
-
-mvn compile exec:java -pl agentarts-sdk-examples \
-  -Dexec.mainClass="com.huaweicloud.agentarts.examples.AgentScopeIntegrationExample"
-```
+The starter auto-configures `AgentArtsRuntimeApp` and contributes an Actuator health indicator at `/actuator/health`.
 
 ## Configuration
 
 ### Environment Variables
 
 | Variable | Description | Default |
-|---|---|---|
+| --- | --- | --- |
 | `HUAWEICLOUD_SDK_AK` | Access Key ID | — |
 | `HUAWEICLOUD_SDK_SK` | Secret Access Key | — |
 | `HUAWEICLOUD_SDK_REGION` | Huawei Cloud region | `cn-southwest-2` |
@@ -276,6 +308,8 @@ mvn compile exec:java -pl agentarts-sdk-examples \
 | `HUAWEICLOUD_SDK_CODE_INTERPRETER_API_KEY` | Code Interpreter data-plane API key | — |
 | `AGENTARTS_CONTROL_ENDPOINT` | Custom control plane endpoint | auto |
 | `AGENTARTS_RUNTIME_DATA_ENDPOINT` | Custom data plane endpoint | — |
+
+For the full priority chain and Java constant mappings, see the [Environment Variables Guide](docs/cn/sdk_user_guide/environment_variables.md).
 
 ### `.agentarts_config.yaml`
 
@@ -289,6 +323,7 @@ agents:
       region: cn-southwest-2
       language: java17
       base_image: eclipse-temurin:17-jre
+      dependency_file: pom.xml
     swr_config:
       organization: my-org
       repository: my-agent
@@ -298,34 +333,32 @@ agents:
         port: 8080
 ```
 
-## CLI Toolkit
+## Built-in Cloud Tools
 
-The `agentarts` CLI provides commands for the full agent lifecycle:
+| Tool | Module | What it does |
+| --- | --- | --- |
+| **Memory** | `agentarts-sdk-memory` | Conversation memory: space/session/message CRUD, search with filters, `MemorySession` wrapper (control plane via AK/SK, data plane via API Key) |
+| **Code Interpreter** | `agentarts-sdk-tools` | Sandboxed execution: run code/commands, upload/download files, install packages — `CodeSession` auto-closeable context |
+| **Gateway** | `agentarts-sdk-gateway` | Gateway and target CRUD via AK/SK signed requests |
+| **Identity** | `agentarts-sdk-identity` | Workload identity, access tokens (forUserId/forJwt), OAuth2/API Key/STS providers |
+
+See the [SDK user guides](docs/cn/sdk_user_guide) for API details and examples.
+
+## Examples
+
+The `agentarts-sdk-examples` module contains runnable projects:
 
 ```bash
-# Initialize a new project
-agentarts init -n my-agent -t basic -r cn-southwest-2
+# Basic Vert.x runtime agent (sync + SSE streaming)
+mvn compile exec:java -pl agentarts-sdk-examples \
+  -Dexec.mainClass="com.huaweicloud.agentarts.examples.BasicRuntimeExample"
 
-# Local development server
-agentarts dev -p 8080
-
-# Configure agent settings
-agentarts config -n my-agent -e com.example.MyAgent -r cn-southwest-2
-agentarts config set base.region cn-north-4
-agentarts config set-env LOG_LEVEL INFO
-agentarts config list
-
-# Deploy to Huawei Cloud
-agentarts deploy -a my-agent -m cloud -t v1.0
-
-# Invoke agent
-agentarts invoke '{"message": "Hello!"}' -a my-agent -m local -p 8080
-
-# Destroy agent
-agentarts destroy -a my-agent -y
+# AgentScope integration demo (streaming, tools, multi-turn memory)
+export HUAWEICLOUD_SDK_MEMORY_API_KEY=your-api-key
+export AGENTARTS_MEMORY_SPACE_ID=your-space-id
+mvn compile exec:java -pl agentarts-sdk-examples \
+  -Dexec.mainClass="com.huaweicloud.agentarts.examples.AgentScopeIntegrationExample"
 ```
-
-See also the [Python SDK](https://github.com/huaweicloud/agentarts-sdk-python) for the equivalent CLI toolkit.
 
 ## Building from Source
 
@@ -335,117 +368,20 @@ cd agentarts-sdk-java
 mvn clean verify
 ```
 
-Release artifacts (sources, Javadoc and CycloneDX XML/JSON SBOM) are built with:
+Cloud E2E tests are opt-in and require real credentials; a green `mvn verify` run does not exercise cloud behavior. See the [E2E testing guide](docs/cn/e2e_testing_guide.md) for the safety tiers, environment variables, and how to interpret results. **Never commit or print real credentials** — inject them through the environment or a CI secret store.
 
-```bash
-mvn -Prelease -DskipTests -Dgpg.skip=true package
-```
+## Documentation
 
-Use organization-managed signing keys for a real release; `gpg.skip` is only for local artifact verification. API compatibility checking is available through the `api-compatibility` profile after a published baseline version is configured.
-
-### Run Tests
-
-```bash
-# All local tests and coverage/build gates
-mvn clean verify
-
-# Unit tests only (core modules)
-mvn test -pl agentarts-sdk-core,agentarts-sdk-service,agentarts-sdk-runtime
-
-# E2E tests (read-only tier; AK/SK must already be injected by a secret store)
-mvn test -pl agentarts-sdk-tests
-
-# E2E tests (full lifecycle, creates real cloud resources, auto-cleaned)
-export AGENTARTS_TEST_ALLOW_CREATE=1
-mvn test -pl agentarts-sdk-tests
-
-# E2E tests (billable tier — real money; CI/Runtime session need pre-provisioned resources)
-export AGENTARTS_TEST_RUN_BILLABLE=1
-mvn test -pl agentarts-sdk-tests -Dtest='CodeInterpreterSessionTest,RuntimeSessionLifecycleTest'
-
-# Docker deploy (billable; self-deploys an agent via Docker+SWR, LIFO-cleans runtime/image/SWR)
-export AGENTARTS_TEST_RUN_BILLABLE=1
-mvn test -pl agentarts-sdk-tests -Dtest=CliDeployedRuntimeE2ETest
-```
-
-> See the [E2E 测试指南](docs/cn/e2e_testing_guide.md) for the full three-tier safety model, environment variables, and result interpretation. **Never commit, print or place real credentials in command history** — inject them through the environment or CI secret store, and rotate any credential that may have been exposed.
-
-## Testing
-
-The test suite spans three layers. The latest clean local verification executed 807 tests with 0 failures and 0 errors in 203.8 seconds; two billable suites were skipped because their explicit prerequisites were absent. Counts are evidence for that run only, not a cloud-authentication attestation.
-
-| Layer | Description |
-|---|---|
-| Unit + local integration | V11 signing, HTTP client, Runtime server/client, Identity, Memory, Tools, Gateway, agentscope, Spring Boot, cross-module — no cloud credentials needed |
-| Cloud E2E | Read-only probes plus opt-in lifecycle and billable suites; actual executed counts must be taken from the current Surefire reports |
-| CLI scaffolding | Template rendering, picocli command-tree/option parsing, init/config structure (no Docker/cloud) |
-
-Cloud E2E covers Identity, Memory, Gateway, Code Interpreter, Runtime, auth decorators, read-only probes, and CLI workflows. A successful default `mvn test` does not prove cloud behavior: classes guarded by `@BeforeAll` assumptions can be reported with `Tests run: 0`. Execution requirements and result interpretation are documented in the [E2E 测试指南](docs/cn/e2e_testing_guide.md).
-
-### E2E Three-Tier Safety Model
-
-| Tier | Switch | What runs | Cloud writes? |
-|---|---|---|---|
-| **Default (read-only)** | — | list/get + local RuntimeApp | none |
-| **Lifecycle** | `AGENTARTS_TEST_ALLOW_CREATE=1` | create→get→update→delete | yes, LIFO teardown-guaranteed |
-| **Billable** | `AGENTARTS_TEST_RUN_BILLABLE=1` | code-interpreter sandbox, runtime invoke | real money |
-
-Tests whose prerequisites are not met use assumptions. Always inspect Surefire's executed and skipped counts; a green build alone is not an E2E attestation.
-
-## Dependency Versions
-
-Key dependencies aligned with [agentscope-java](https://github.com/agentscope-ai/agentscope-java) BOM:
-
-| Dependency | Version | Notes |
-|---|---|---|
-| Project Reactor | `2025.0.2` | Aligned with agentscope |
-| Jackson | `2.21.1` | Aligned with agentscope |
-| Vert.x | `4.5.26` | Self-managed patched release |
-| Huawei Cloud SDK v3 | `3.1.207` | core, agentidentity, iam, swr |
-| agentscope-core | `1.0.12` | stable API, provided |
-| MCP SDK | `0.17.0` | aligned with AgentScope 1.0.12, provided |
-| Spring Boot | `3.5.16` | Optional starter |
-| JUnit | `5.12.2` | Testing |
-
-## API Compatibility
-
-The Java SDK is aligned with the pinned Python SDK for core, service, Runtime, Identity, Memory, Tools, Gateway and CLI behavior. Python framework integrations and framework-specific templates are intentionally excluded; Java provides a production AgentScope integration instead. Language-idiomatic type shapes may differ, while wire behavior, defaults, error propagation and lifecycle semantics are covered by compatibility tests.
-
-| Aspect | Coverage |
-|---|---|
-| V11 Signing | Cross-language golden vector tests (exact signature match) |
-| HTTP Endpoints | Status codes (200/400/500/503), SSE format, error JSON structure |
-| Header Constants | 4 standard AgentArts runtime headers |
-| Context Fields | 7 thread-local context fields (session, request, user, token, OAuth2) |
-| Memory API | 15 methods + MemorySession wrapper + 15 model classes |
-| Tools API | 17 methods + CodeSession context manager |
-| Gateway API | 10 methods (gateway CRUD + target CRUD) |
-| Runtime Client API | 17 methods: agent CRUD (7) + endpoint CRUD (4) + data plane (6: invoke, exec, upload, download, sessions) |
-| Identity API | Workload identity CRUD + credential providers + access tokens |
-| CLI Commands | 9 top-level + 8 config + 6 runtime + 10 gateway + 6 memory subcommands |
-| agentscope Integration | AgentScope `Session`, bounded per-session executor, request context bridge, AgentTool adapters, MessageConverter |
-| Spring Boot Starter | AutoConfiguration, ConfigurationProperties, HealthIndicator |
-| Verification | 807 tests in the latest clean local run; cloud lifecycle/billable execution remains explicitly opt-in |
-
-## Python SDK Reference
-
-Compatibility is tracked against the [Python AgentArts SDK](https://github.com/huaweicloud/agentarts-sdk-python). Claims of parity must be backed by behavioral tests; method-count or test-count parity alone is not sufficient.
-
-| Item | Value |
-|---|---|
-| Python SDK Repository | https://github.com/huaweicloud/agentarts-sdk-python |
-| Pinned Commit | `d130e21` (local reference checkout) |
-| Exclusions | Python framework integrations and framework-specific templates |
-| Last Synced | 2026-07-17 |
-
-To check for Python SDK changes since last sync:
-
-```bash
-cd agentarts-sdk-python
-git fetch origin
-git log d130e21..HEAD --oneline
-```
+- [SDK User Guides (中文)](docs/cn/sdk_user_guide) — Runtime, Memory, Code Interpreter, Gateway, Identity
+- [E2E Testing Guide (中文)](docs/cn/e2e_testing_guide.md) — three-tier safety model and result interpretation
+- [CLI (Python SDK)](https://github.com/huaweicloud/agentarts-sdk-python#readme) — `agentarts` CLI install, commands, Java agent support
 
 ## License
 
 [Apache License 2.0](LICENSE)
+
+## Support
+
+- **Issues:** [GitHub Issues](https://github.com/huaweicloud/agentarts-sdk-java/issues)
+- **Documentation:** <https://support.huaweicloud.com/productdesc-agentarts/agentarts_03_0002.html>
+- **Email:** <hwagentartssdk@huawei.com>

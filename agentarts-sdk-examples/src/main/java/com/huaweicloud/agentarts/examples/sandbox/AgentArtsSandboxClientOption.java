@@ -1,6 +1,6 @@
 package com.huaweicloud.agentarts.examples.sandbox;
 
-import com.ads.demo.client.AgentRunClient;
+import com.huaweicloud.agentarts.examples.client.AgentRunClient;
 import io.agentscope.harness.agent.sandbox.SandboxClient;
 import io.agentscope.harness.agent.sandbox.SandboxClientOptions;
 

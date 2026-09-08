@@ -127,6 +127,49 @@ class RuntimeClientTest {
         }
 
         @Test
+        void createOrUpdateForwardsEnvVarsAndStorageOnUpdatePath() throws Exception {
+            BaseHttpClient controlClient = mock(BaseHttpClient.class);
+            BaseHttpClient dataClient = mock(BaseHttpClient.class);
+            // findAgentByName returns an existing agent so the update path is taken.
+            RequestResult agents = RequestResult.builder()
+                    .success(true).statusCode(200)
+                    .data(JsonUtils.MAPPER.readTree(
+                            "{\"items\":[{\"id\":\"agent-id\",\"name\":\"sample-agent\"}],\"total\":1}"))
+                    .build();
+            when(controlClient.request(eq("GET"), eq("/runtimes"),
+                    isNull(), isNull(), anyMap())).thenReturn(Mono.just(agents));
+            RequestResult updated = RequestResult.builder()
+                    .success(true).statusCode(200)
+                    .data(JsonUtils.MAPPER.readTree("{\"id\":\"agent-id\"}"))
+                    .build();
+            when(controlClient.put(eq("/runtimes/agent-id"), any()))
+                    .thenReturn(Mono.just(updated));
+
+            try (RuntimeClient client = new RuntimeClient(
+                    "test-region", true, SignMode.SDK_HMAC_SHA256,
+                    controlClient, dataClient)) {
+                CreateAgentRequest req = new CreateAgentRequest()
+                        .withName("sample-agent")
+                        .withEnvironmentVariables(List.of(
+                                Map.of("key", "API_KEY", "value", "secret")))
+                        .withStorageConfig(Map.of("sfs_turbo", List.of(Map.of(
+                                "sfs_turbo_id", "uuid",
+                                "mount_path", "/data"))));
+                client.createOrUpdateAgent("sample-agent", req);
+            }
+
+            ArgumentCaptor<UpdateAgentRequest> captor =
+                    ArgumentCaptor.forClass(UpdateAgentRequest.class);
+            verify(controlClient).put(eq("/runtimes/agent-id"), captor.capture());
+            assertEquals(List.of(Map.of("key", "API_KEY", "value", "secret")),
+                    captor.getValue().getEnvironmentVariables());
+            assertEquals(Map.of("sfs_turbo", List.of(Map.of(
+                            "sfs_turbo_id", "uuid",
+                            "mount_path", "/data"))),
+                    captor.getValue().getStorageConfig());
+        }
+
+        @Test
         void agentFiltersArePassedAsEncodedQueryParameters() throws Exception {
             BaseHttpClient controlClient = mock(BaseHttpClient.class);
             BaseHttpClient dataClient = mock(BaseHttpClient.class);

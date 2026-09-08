@@ -321,7 +321,7 @@ public class SWRServiceClient implements AutoCloseable {
      * @return full image name (e.g., "swr.cn-southwest-2.myhuaweicloud.com/namespace/repo:tag")
      */
     public String getFullImageName(String namespace, String repository, String tag) {
-        String swrHost = "swr." + region + ".myhuaweicloud.com";
+        String swrHost = Constants.getSwrLoginServer(region);
         return swrHost + "/" + namespace + "/" + repository + ":" + tag;
     }
 
@@ -337,7 +337,7 @@ public class SWRServiceClient implements AutoCloseable {
      * @return login server host
      */
     public String getLoginServer() {
-        return "swr." + region + ".myhuaweicloud.com";
+        return Constants.getSwrLoginServer(region);
     }
 
     /**

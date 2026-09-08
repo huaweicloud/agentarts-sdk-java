@@ -19,6 +19,9 @@ public class UpdateAgentRequest {
     @JsonProperty("artifact_source")
     private Map<String, Object> artifactSource;
 
+    @JsonProperty("storage_config")
+    private Map<String, Object> storageConfig;
+
     @JsonProperty("invoke_config")
     private Map<String, Object> invokeConfig;
 
@@ -47,6 +50,11 @@ public class UpdateAgentRequest {
 
     public UpdateAgentRequest withArtifactSource(Map<String, Object> artifactSource) {
         this.artifactSource = artifactSource;
+        return this;
+    }
+
+    public UpdateAgentRequest withStorageConfig(Map<String, Object> storageConfig) {
+        this.storageConfig = storageConfig;
         return this;
     }
 
@@ -99,6 +107,14 @@ public class UpdateAgentRequest {
 
     public void setArtifactSource(Map<String, Object> artifactSource) {
         this.artifactSource = artifactSource;
+    }
+
+    public Map<String, Object> getStorageConfig() {
+        return storageConfig;
+    }
+
+    public void setStorageConfig(Map<String, Object> storageConfig) {
+        this.storageConfig = storageConfig;
     }
 
     public Map<String, Object> getInvokeConfig() {
@@ -164,6 +180,7 @@ public class UpdateAgentRequest {
         UpdateAgentRequest that = (UpdateAgentRequest) o;
         return Objects.equals(description, that.description)
                 && Objects.equals(artifactSource, that.artifactSource)
+                && Objects.equals(storageConfig, that.storageConfig)
                 && Objects.equals(invokeConfig, that.invokeConfig)
                 && Objects.equals(networkConfig, that.networkConfig)
                 && Objects.equals(observability, that.observability)
@@ -175,8 +192,9 @@ public class UpdateAgentRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(description, artifactSource, invokeConfig, networkConfig,
-                observability, executionAgencyName, agentGatewayId, environmentVariables, tags);
+        return Objects.hash(description, artifactSource, storageConfig, invokeConfig,
+                networkConfig, observability, executionAgencyName, agentGatewayId,
+                environmentVariables, tags);
     }
 
     @Override
@@ -185,6 +203,7 @@ public class UpdateAgentRequest {
                 + "description='" + description + "'"
                 + ", executionAgencyName='" + executionAgencyName + "'"
                 + ", agentGatewayId='" + agentGatewayId + "'"
+                + ", storageConfig=" + redacted(storageConfig)
                 + ", invokeConfig=" + redacted(invokeConfig)
                 + ", environmentVariables=" + redacted(environmentVariables)
                 + ", tags=" + tags

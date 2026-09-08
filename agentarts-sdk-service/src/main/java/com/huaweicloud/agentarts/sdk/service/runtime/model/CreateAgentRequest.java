@@ -22,6 +22,9 @@ public class CreateAgentRequest {
     @JsonProperty("artifact_source")
     private Map<String, Object> artifactSource;
 
+    @JsonProperty("storage_config")
+    private Map<String, Object> storageConfig;
+
     @JsonProperty("identity_configuration")
     private Map<String, Object> identityConfiguration;
 
@@ -61,6 +64,11 @@ public class CreateAgentRequest {
 
     public CreateAgentRequest withArtifactSource(Map<String, Object> artifactSource) {
         this.artifactSource = artifactSource;
+        return this;
+    }
+
+    public CreateAgentRequest withStorageConfig(Map<String, Object> storageConfig) {
+        this.storageConfig = storageConfig;
         return this;
     }
 
@@ -126,6 +134,14 @@ public class CreateAgentRequest {
 
     public void setArtifactSource(Map<String, Object> artifactSource) {
         this.artifactSource = artifactSource;
+    }
+
+    public Map<String, Object> getStorageConfig() {
+        return storageConfig;
+    }
+
+    public void setStorageConfig(Map<String, Object> storageConfig) {
+        this.storageConfig = storageConfig;
     }
 
     public Map<String, Object> getIdentityConfiguration() {
@@ -213,6 +229,7 @@ public class CreateAgentRequest {
         return Objects.equals(name, that.name)
                 && Objects.equals(description, that.description)
                 && Objects.equals(artifactSource, that.artifactSource)
+                && Objects.equals(storageConfig, that.storageConfig)
                 && Objects.equals(identityConfiguration, that.identityConfiguration)
                 && Objects.equals(invokeConfig, that.invokeConfig)
                 && Objects.equals(networkConfig, that.networkConfig)
@@ -226,9 +243,9 @@ public class CreateAgentRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, artifactSource, identityConfiguration,
-                invokeConfig, networkConfig, observability, executionAgencyName,
-                agentGatewayId, environmentVariables, tags, arch);
+        return Objects.hash(name, description, artifactSource, storageConfig,
+                identityConfiguration, invokeConfig, networkConfig, observability,
+                executionAgencyName, agentGatewayId, environmentVariables, tags, arch);
     }
 
     @Override
@@ -238,6 +255,7 @@ public class CreateAgentRequest {
                 + ", description='" + description + "'"
                 + ", executionAgencyName='" + executionAgencyName + "'"
                 + ", agentGatewayId='" + agentGatewayId + "'"
+                + ", storageConfig=" + redacted(storageConfig)
                 + ", identityConfiguration=" + redacted(identityConfiguration)
                 + ", invokeConfig=" + redacted(invokeConfig)
                 + ", environmentVariables=" + redacted(environmentVariables)

@@ -49,5 +49,13 @@ agents:
           enabled: false
       artifact_source:
         url: null
+        swr_instance_id: null
         commands: []
+      storage_config:
+        sfs_turbo:
+          sfs_turbo_id: null  # UUID format, required when using SFS Turbo
+          sfs_path: null
+          mount_path: null    # required when using SFS Turbo
+          read_only: false
+      environment_variables: {}
       tags: {}

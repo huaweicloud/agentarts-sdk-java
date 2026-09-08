@@ -98,6 +98,103 @@ class DeployOperationTest {
     }
 
     @Test
+    void storageConfigAbsentIsOmitted() {
+        RuntimeConfig runtime = new RuntimeConfig();
+
+        CreateAgentRequest request = DeployOperation.buildCreateRequest(
+                "sample-agent", "registry.example/sample:latest", runtime, null);
+
+        assertNull(request.getStorageConfig());
+    }
+
+    @Test
+    void storageConfigAllNullPlaceholderIsTreatedAsUnset() {
+        // Mirrors the null block written by init: an all-null storage_config
+        // must not block deploy nor be sent to the API.
+        RuntimeConfig runtime = new RuntimeConfig();
+        Map<String, Object> sfsTurbo = new LinkedHashMap<>();
+        sfsTurbo.put("sfs_turbo_id", null);
+        sfsTurbo.put("sfs_path", null);
+        sfsTurbo.put("mount_path", null);
+        sfsTurbo.put("read_only", false);
+        runtime.setStorageConfig(new LinkedHashMap<>(Map.of("sfs_turbo", sfsTurbo)));
+
+        CreateAgentRequest request = DeployOperation.buildCreateRequest(
+                "sample-agent", "registry.example/sample:latest", runtime, null);
+
+        assertNull(request.getStorageConfig());
+    }
+
+    @Test
+    void storageConfigWithoutIdIsTreatedAsUnset() {
+        // Only sfs_path/mount_path but no sfs_turbo_id: not blocked, nothing sent.
+        RuntimeConfig runtime = new RuntimeConfig();
+        runtime.setStorageConfig(new LinkedHashMap<>(Map.of(
+                "sfs_turbo", new LinkedHashMap<String, Object>(Map.of(
+                        "sfs_path", "/share/sub",
+                        "mount_path", "/data")))));
+
+        CreateAgentRequest request = DeployOperation.buildCreateRequest(
+                "sample-agent", "registry.example/sample:latest", runtime, null);
+
+        assertNull(request.getStorageConfig());
+    }
+
+    @Test
+    void storageConfigIsForwardedWithSfsTurboAsArray() {
+        RuntimeConfig runtime = new RuntimeConfig();
+        runtime.setStorageConfig(new LinkedHashMap<>(Map.of(
+                "sfs_turbo", new LinkedHashMap<String, Object>(Map.of(
+                        "sfs_turbo_id", "12345678-1234-1234-1234-123456789012",
+                        "sfs_path", "/share/sub",
+                        "mount_path", "/data",
+                        "read_only", true)))));
+
+        CreateAgentRequest request = DeployOperation.buildCreateRequest(
+                "sample-agent", "registry.example/sample:latest", runtime, null);
+
+        assertEquals(Map.of("sfs_turbo", List.of(Map.of(
+                        "sfs_turbo_id", "12345678-1234-1234-1234-123456789012",
+                        "sfs_path", "/share/sub",
+                        "mount_path", "/data",
+                        "read_only", true))),
+                request.getStorageConfig());
+    }
+
+    @Test
+    void storageConfigDropsNullFieldsWhenForwarded() {
+        // Matches the Python SDK's exclude_none behavior.
+        RuntimeConfig runtime = new RuntimeConfig();
+        Map<String, Object> sfsTurbo = new LinkedHashMap<>();
+        sfsTurbo.put("sfs_turbo_id", "12345678-1234-1234-1234-123456789012");
+        sfsTurbo.put("sfs_path", null);
+        sfsTurbo.put("mount_path", "/data");
+        runtime.setStorageConfig(new LinkedHashMap<>(Map.of("sfs_turbo", sfsTurbo)));
+
+        CreateAgentRequest request = DeployOperation.buildCreateRequest(
+                "sample-agent", "registry.example/sample:latest", runtime, null);
+
+        assertEquals(Map.of("sfs_turbo", List.of(Map.of(
+                        "sfs_turbo_id", "12345678-1234-1234-1234-123456789012",
+                        "mount_path", "/data"))),
+                request.getStorageConfig());
+    }
+
+    @Test
+    void storageConfigRequiresMountPathWhenIdIsSet() {
+        RuntimeConfig runtime = new RuntimeConfig();
+        runtime.setStorageConfig(new LinkedHashMap<>(Map.of(
+                "sfs_turbo", new LinkedHashMap<String, Object>(Map.of(
+                        "sfs_turbo_id", "12345678-1234-1234-1234-123456789012",
+                        "sfs_path", "/share/sub")))));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> DeployOperation.buildCreateRequest(
+                        "sample-agent", "registry.example/sample:latest", runtime, null));
+        assertTrue(ex.getMessage().contains("mount_path is required when sfs_turbo_id is set"));
+    }
+
+    @Test
     void resolvesExplicitDefaultAndFirstAgentKeys() {
         AgentArtsConfigList config = new AgentArtsConfigList();
         config.addAgent("first", new AgentArtsConfig());

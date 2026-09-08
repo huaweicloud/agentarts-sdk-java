@@ -291,6 +291,7 @@ public class DeployOperation {
                 .withName(agentName)
                 .withDescription(desc)
                 .withArtifactSource(artifactSource)
+                .withStorageConfig(resolveStorageConfig(runtimeCfg.getStorageConfig()))
                 .withInvokeConfig(invokeConfig)
                 .withNetworkConfig(runtimeCfg.getNetworkConfig())
                 .withObservability(runtimeCfg.getObservability())
@@ -328,6 +329,46 @@ public class DeployOperation {
             req.withArch(runtimeCfg.getArch());
         }
         return req;
+    }
+
+    /**
+     * Resolve the API payload for {@code storage_config}, mirroring the Python
+     * SDK's {@code create_agentarts_runtime} (deploy.py:115-129).
+     *
+     * <p>The config YAML holds {@code sfs_turbo} as a single object, but the
+     * API expects an array. A storage_config without {@code sfs_turbo_id} is
+     * treated as unset (nothing is sent); when {@code sfs_turbo_id} is set,
+     * {@code mount_path} is required. Returns {@code null} when SFS Turbo is
+     * not configured so the field is omitted from the request.</p>
+     */
+    static Map<String, Object> resolveStorageConfig(Map<String, Object> storageConfig) {
+        if (storageConfig == null || storageConfig.isEmpty()) {
+            return null;
+        }
+        Object sfsTurboObj = storageConfig.get("sfs_turbo");
+        if (!(sfsTurboObj instanceof Map<?, ?> sfsTurbo)) {
+            return null;
+        }
+        Object sfsTurboId = sfsTurbo.get("sfs_turbo_id");
+        if (sfsTurboId == null || String.valueOf(sfsTurboId).isBlank()) {
+            return null;
+        }
+        Object mountPath = sfsTurbo.get("mount_path");
+        if (mountPath == null || String.valueOf(mountPath).isBlank()) {
+            throw new IllegalArgumentException(
+                    "storage_config.sfs_turbo.mount_path is required when sfs_turbo_id is set");
+        }
+        // API expects sfs_turbo as an array; null fields are dropped
+        // (matches the Python SDK's exclude_none behavior).
+        Map<String, Object> item = new LinkedHashMap<>();
+        sfsTurbo.forEach((k, v) -> {
+            if (v != null) {
+                item.put(String.valueOf(k), v);
+            }
+        });
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("sfs_turbo", List.of(item));
+        return result;
     }
 
     static String resolveAgentKey(AgentArtsConfigList configList, String agentName) {

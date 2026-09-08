@@ -40,6 +40,9 @@ public class RuntimeConfig {
     @JsonProperty("artifact_source")
     private Map<String, Object> artifactSource;
 
+    @JsonProperty("storage_config")
+    private Map<String, Object> storageConfig;
+
     @JsonProperty("environment_variables")
     private Map<String, String> environmentVariables;
 
@@ -72,6 +75,9 @@ public class RuntimeConfig {
 
     public Map<String, Object> getArtifactSource() { return artifactSource; }
     public void setArtifactSource(Map<String, Object> artifactSource) { this.artifactSource = artifactSource; }
+
+    public Map<String, Object> getStorageConfig() { return storageConfig; }
+    public void setStorageConfig(Map<String, Object> storageConfig) { this.storageConfig = storageConfig; }
 
     public Map<String, String> getEnvironmentVariables() { return environmentVariables; }
     public void setEnvironmentVariables(Map<String, String> environmentVariables) { this.environmentVariables = environmentVariables; }

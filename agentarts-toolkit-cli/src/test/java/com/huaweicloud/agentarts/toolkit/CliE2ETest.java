@@ -345,13 +345,29 @@ class CliE2ETest {
         }
 
         @Test
-        void initSwrDefaultsToProjectName(@TempDir Path tempDir) throws Exception {
+        void defaultAgentNameMatchesPythonFormat() {
+            // Mirrors the Python SDK's generate_default_agent_name():
+            // "myagent-" + 5 random lowercase letters/digits.
+            String name = InitOperation.generateDefaultAgentName();
+            assertTrue(name.matches("myagent-[a-z0-9]{5}"),
+                    "default name should be myagent-<5 random alnum chars>, got: " + name);
+        }
+
+        @Test
+        void initSwrDefaultsFollowPythonSdkRules(@TempDir Path tempDir) throws Exception {
             InitOperation.initProject("basic", "default-swr", tempDir.toString(),
                     "cn-southwest-2", null, null);
 
             String config = Files.readString(tempDir.resolve("default-swr/.agentarts_config.yaml"));
-            assertTrue(config.contains("organization: default-swr"), "SWR org should default to name");
-            assertTrue(config.contains("repository: default-swr"), "SWR repo should default to name");
+            // swr_repo defaults to "agent_<name>" (Python: swr_repo or f"agent_{name}")
+            assertTrue(config.contains("repository: agent_default-swr"),
+                    "SWR repo should default to agent_<name>. config=" + config);
+            // swr_org defaults to "agentarts-<region_short>-<ak_hash8>-org"
+            // (Python: generate_swr_org_name(region)); the ak hash is md5(ak)[:8],
+            // or 8 random chars when no AK is configured, so match the shape.
+            assertTrue(config.lines().anyMatch(line -> line.trim().matches(
+                            "organization: agentarts-cnso2-[a-z0-9]{8}-org")),
+                    "SWR org should follow agentarts-<region>-<hash>-org pattern. config=" + config);
         }
     }
 

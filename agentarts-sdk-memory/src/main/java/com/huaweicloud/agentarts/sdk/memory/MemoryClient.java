@@ -352,7 +352,15 @@ public class MemoryClient implements AutoCloseable {
                 msgDicts.add(trm.toDict());
             } else {
                 String type = msg == null ? "null" : msg.getClass().getName();
-                throw new IllegalArgumentException("Unsupported message type: " + type);
+                throw new IllegalArgumentException(
+                        "Unsupported message type: " + type + ". "
+                        + "addMessages only accepts typed message objects (the SDK converts them "
+                        + "to the backend's 'parts' format). Pass one of: "
+                        + "TextMessage(role, content) for plain text, "
+                        + "ToolCallMessage for tool invocations, "
+                        + "ToolResultMessage for tool outputs. "
+                        + "Raw Maps / LinkedHashMap / POJOs are not accepted. "
+                        + "Example: List.of(new TextMessage(\"user\", \"hello\"))");
             }
         }
 

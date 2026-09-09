@@ -46,6 +46,8 @@ Thumbs.db
 .env.*
 !.env.example
 
+
+agentarts-e2e.env
 # AI assistant local data
 .ai
 AGENTS.md

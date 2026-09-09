@@ -19,7 +19,7 @@ public class SpaceInfo {
     @JsonProperty("memory_extract_idle_seconds") private Integer memoryExtractIdleSeconds;
     @JsonProperty("memory_extract_max_tokens") private Integer memoryExtractMaxTokens;
     @JsonProperty("memory_extract_max_messages") private Integer memoryExtractMaxMessages;
-    @JsonProperty("memory_strategies_builtin") private List<String> memoryStrategiesBuiltin;
+    @JsonProperty("memory_strategies_builtin") private List<Map<String, Object>> memoryStrategiesBuiltin;
     @JsonProperty("memory_strategies_customized") private List<Map<String, Object>> memoryStrategiesCustomized;
     @JsonProperty("vpc_id") private String vpcId;
     @JsonProperty("subnet_id") private String subnetId;
@@ -53,8 +53,8 @@ public class SpaceInfo {
     public void setMemoryExtractMaxTokens(Integer value) { this.memoryExtractMaxTokens = value; }
     public Integer getMemoryExtractMaxMessages() { return memoryExtractMaxMessages; }
     public void setMemoryExtractMaxMessages(Integer value) { this.memoryExtractMaxMessages = value; }
-    public List<String> getMemoryStrategiesBuiltin() { return memoryStrategiesBuiltin; }
-    public void setMemoryStrategiesBuiltin(List<String> value) { this.memoryStrategiesBuiltin = value; }
+    public List<Map<String, Object>> getMemoryStrategiesBuiltin() { return memoryStrategiesBuiltin; }
+    public void setMemoryStrategiesBuiltin(List<Map<String, Object>> value) { this.memoryStrategiesBuiltin = value; }
     public List<Map<String, Object>> getMemoryStrategiesCustomized() { return memoryStrategiesCustomized; }
     public void setMemoryStrategiesCustomized(List<Map<String, Object>> value) { this.memoryStrategiesCustomized = value; }
     public String getVpcId() { return vpcId; }

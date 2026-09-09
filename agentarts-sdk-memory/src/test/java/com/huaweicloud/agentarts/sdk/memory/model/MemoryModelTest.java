@@ -755,7 +755,7 @@ class MemoryModelTest {
         void spaceInfoDeserializesAdvancedConfiguration() throws Exception {
             String json = "{\"id\":\"sp-123\",\"memory_extract_idle_seconds\":30,"
                     + "\"memory_extract_max_tokens\":1000,\"memory_extract_max_messages\":20,"
-                    + "\"memory_strategies_builtin\":[\"semantic\"],"
+                    + "\"memory_strategies_builtin\":[{\"name\":\"semantic\"}],"
                     + "\"memory_strategies_customized\":[{\"name\":\"custom\"}],"
                     + "\"private_access\":{\"domain\":\"private.example\",\"ip\":\"192.0.2.1\"},"
                     + "\"private_domain\":\"private.example\",\"private_ip\":\"192.0.2.1\"}";
@@ -764,7 +764,7 @@ class MemoryModelTest {
             assertEquals(30, info.getMemoryExtractIdleSeconds());
             assertEquals(1000, info.getMemoryExtractMaxTokens());
             assertEquals(20, info.getMemoryExtractMaxMessages());
-            assertEquals(List.of("semantic"), info.getMemoryStrategiesBuiltin());
+            assertEquals("semantic", info.getMemoryStrategiesBuiltin().get(0).get("name"));
             assertEquals("custom", info.getMemoryStrategiesCustomized().get(0).get("name"));
             assertEquals("private.example", info.getPrivateAccess().get("domain"));
             assertEquals("private.example", info.getPrivateDomain());

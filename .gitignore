@@ -45,3 +45,6 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Local E2E credentials (never commit)
+agentarts-e2e.env

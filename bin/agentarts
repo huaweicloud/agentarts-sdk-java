@@ -12,10 +12,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 JAR=""
+# Prefer an explicit override; then the extracted distribution layout
+# (bin/ + ../lib/); then the in-repo development layout.
 for candidate in \
     "${AGENTARTS_CLI_JAR:-}" \
     "$SCRIPT_DIR/agentarts-toolkit-cli.jar" \
-    "$SCRIPT_DIR/../agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-SNAPSHOT-standalone.jar"; do
+    "$SCRIPT_DIR"/../lib/agentarts-toolkit-cli-*-standalone.jar \
+    "$SCRIPT_DIR/../agentarts-toolkit-cli/target/agentarts-toolkit-cli-*-standalone.jar"; do
+    # The glob entries expand to the literal pattern when nothing matches;
+    # skip those so only existing files are selected.
     if [ -n "$candidate" ] && [ -f "$candidate" ]; then
         JAR="$candidate"
         break

@@ -1,6 +1,5 @@
 package com.example;
 
-import com.huaweicloud.agentarts.sdk.integration.agentscope.runtime.AgentscopeRequestContext;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.runtime.AgentscopeRuntimeHost;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.runtime.AgentscopeSessionExecutor;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.state.MemoryAgentStateStore;
@@ -8,10 +7,10 @@ import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.model.OpenAIChatModel;
-import io.agentscope.core.session.InMemorySession;
-import io.agentscope.core.session.Session;
+import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.core.state.InMemoryAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 
 import java.time.Duration;
 import java.util.Map;
@@ -31,18 +30,18 @@ public class Agent {
         }
         OpenAIChatModel model = modelBuilder.build();
         Toolkit toolkit = new Toolkit();
-        Session session = createSession();
+        AgentStateStore stateStore = createStateStore();
         AgentscopeSessionExecutor executor = new AgentscopeSessionExecutor(
-                session, Duration.ofSeconds(positiveIntEnvironment("AGENT_TIMEOUT_SECONDS", 120)));
+                stateStore, Duration.ofSeconds(positiveIntEnvironment("AGENT_TIMEOUT_SECONDS", 120)));
 
         AgentArtsRuntimeApp app = new AgentArtsRuntimeApp();
-        app.registerManagedResource(session::close);
+        app.registerManagedResource(stateStore::close);
         new AgentscopeRuntimeHost(app, (payload, context) -> {
             Object value = payload.get("message");
             if (!(value instanceof String message) || message.isBlank()) {
                 throw new IllegalArgumentException("message must be a non-blank string");
             }
-            ReActAgent agent = createAgent(model, toolkit, context);
+            ReActAgent agent = createAgent(model, toolkit, stateStore);
             Msg response = executor.call(agent, message, context);
             return Map.of("reply", response.getTextContent());
         });
@@ -50,18 +49,18 @@ public class Agent {
     }
 
     private static ReActAgent createAgent(
-            OpenAIChatModel model, Toolkit toolkit, AgentscopeRequestContext context) {
+            OpenAIChatModel model, Toolkit toolkit, AgentStateStore stateStore) {
         return ReActAgent.builder()
                 .name("{{ name }}")
                 .sysPrompt("You are a helpful assistant.")
                 .model(model)
+                .stateStore(stateStore)
                 .toolkit(toolkit.copy())
-                .toolExecutionContext(context.toToolExecutionContext())
                 .maxIters(8)
                 .build();
     }
 
-    private static Session createSession() {
+    private static AgentStateStore createStateStore() {
         String memoryKey = System.getenv("AGENTARTS_MEMORY_API_KEY");
         String spaceId = System.getenv("AGENTARTS_MEMORY_SPACE_ID");
         if (isConfigured(memoryKey) && isConfigured(spaceId)) {
@@ -73,7 +72,7 @@ public class Agent {
             throw new IllegalStateException(
                     "AGENTARTS_MEMORY_API_KEY and AGENTARTS_MEMORY_SPACE_ID must be configured together");
         }
-        return new InMemorySession();
+        return new InMemoryAgentStateStore();
     }
 
     private static int positiveIntEnvironment(String name, int fallback) {

@@ -6,9 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huaweicloud.agentarts.sdk.core.APIException;
 import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.memory.model.*;
-import io.agentscope.core.session.Session;
-import io.agentscope.core.state.SessionKey;
-import io.agentscope.core.state.SimpleSessionKey;
+import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.State;
 
 import java.nio.ByteBuffer;
@@ -19,7 +17,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * AgentScope {@link Session} 实现，通过 AgentArts Memory 数据面 API 持久化状态。
+ * AgentScope {@link AgentStateStore} 实现，通过 AgentArts Memory 数据面 API 持久化状态。
  *
  * <p>映射策略：每个 (userId, sessionId, key) 三元组对应一个 Memory Session，
  * State 对象序列化为 JSON 后作为 TextMessage 存入。每次 save 追加新消息，
@@ -31,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>列表 State: 每个元素一条 {@code __L__:{className}:{json}}</li>
  * </ul>
  */
-public class MemoryAgentStateStore implements Session {
+public class MemoryAgentStateStore implements AgentStateStore {
 
     private static final String DEFAULT_USER_ID = "agentscope";
 
@@ -70,52 +68,6 @@ public class MemoryAgentStateStore implements Session {
      */
     public MemoryAgentStateStore(String regionName, String apiKey, String spaceId) {
         this(new MemoryClient(regionName, apiKey), spaceId);
-    }
-
-    @Override
-    public void save(SessionKey sessionKey, String key, State value) {
-        save(DEFAULT_USER_ID, sessionIdentifier(sessionKey), key, value);
-    }
-
-    @Override
-    public void save(SessionKey sessionKey, String key, List<? extends State> values) {
-        save(DEFAULT_USER_ID, sessionIdentifier(sessionKey), key, values);
-    }
-
-    @Override
-    public <T extends State> Optional<T> get(
-            SessionKey sessionKey, String key, Class<T> type) {
-        return get(DEFAULT_USER_ID, sessionIdentifier(sessionKey), key, type);
-    }
-
-    @Override
-    public <T extends State> List<T> getList(
-            SessionKey sessionKey, String key, Class<T> itemType) {
-        return getList(DEFAULT_USER_ID, sessionIdentifier(sessionKey), key, itemType);
-    }
-
-    @Override
-    public boolean exists(SessionKey sessionKey) {
-        return exists(DEFAULT_USER_ID, sessionIdentifier(sessionKey));
-    }
-
-    @Override
-    public void delete(SessionKey sessionKey) {
-        delete(DEFAULT_USER_ID, sessionIdentifier(sessionKey));
-    }
-
-    @Override
-    public void delete(SessionKey sessionKey, String key) {
-        delete(DEFAULT_USER_ID, sessionIdentifier(sessionKey), key);
-    }
-
-    @Override
-    public Set<SessionKey> listSessionKeys() {
-        Set<SessionKey> keys = new LinkedHashSet<>();
-        for (String id : listSessionIds(DEFAULT_USER_ID)) {
-            keys.add(SimpleSessionKey.of(id));
-        }
-        return Collections.unmodifiableSet(keys);
     }
 
     // ========================
@@ -290,15 +242,6 @@ public class MemoryAgentStateStore implements Session {
     @Override
     public void close() {
         memoryClient.close();
-    }
-
-    private static String sessionIdentifier(SessionKey sessionKey) {
-        Objects.requireNonNull(sessionKey, "sessionKey");
-        String identifier = sessionKey.toIdentifier();
-        if (identifier == null || identifier.isBlank()) {
-            throw new IllegalArgumentException("sessionKey identifier must not be blank");
-        }
-        return identifier;
     }
 
     // ========================

@@ -18,11 +18,10 @@ import com.huaweicloud.agentarts.sdk.runtime.context.RequestContext;
 import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
-import io.agentscope.core.session.InMemorySession;
+import io.agentscope.core.state.InMemoryAgentStateStore;
 import io.agentscope.core.state.State;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.junit.jupiter.api.*;
 
@@ -299,16 +298,16 @@ class CrossModuleIntegrationTest {
         void stateStoreAndMessageConverterShareModels() {
             // Use the stable AgentScope Session API for cross-module integration testing
             // (MemoryAgentStateStore requires real API credentials, tested separately)
-            InMemorySession store = new InMemorySession();
+            InMemoryAgentStateStore store = new InMemoryAgentStateStore();
             AgentscopeRequestContext context = new AgentscopeRequestContext(
                     "session-1", "user-1", "request-1", null);
 
             // Save and retrieve using agentscope State interface
             TestAgentState state = new TestAgentState("agent-1", 42);
-            store.save(context.sessionKey(), "agent_state", state);
+            store.save(context.userId(), context.sessionId(), "agent_state", state);
 
             Optional<TestAgentState> retrieved = store.get(
-                    context.sessionKey(), "agent_state", TestAgentState.class);
+                    context.userId(), context.sessionId(), "agent_state", TestAgentState.class);
             assertTrue(retrieved.isPresent());
             assertEquals("agent-1", retrieved.get().agentId);
             assertEquals(42, retrieved.get().step);

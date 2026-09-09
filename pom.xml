@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <name>AgentArts SDK for Java</name>
-    <description>Huawei Cloud AgentArts Java SDK - runtime, identity, memory, tools, MCP gateway, and agentscope integration</description>
+    <description>Huawei Cloud AgentArts Java SDK - runtime, identity, memory, tools, gateway, and agentscope integration</description>
     <url>https://github.com/huaweicloud/agentarts-sdk-java</url>
 
     <licenses>
@@ -28,13 +28,14 @@
         <module>agentarts-sdk-identity</module>
         <module>agentarts-sdk-memory</module>
         <module>agentarts-sdk-tools</module>
-        <module>agentarts-sdk-mcpgateway</module>
+        <module>agentarts-sdk-gateway</module>
         <module>agentarts-sdk-integration-agentscope</module>
         <module>agentarts-toolkit-cli</module>
         <module>agentarts-spring-boot-starter</module>
         <module>agentarts-sdk-all</module>
         <module>agentarts-sdk-examples</module>
         <module>agentarts-sdk-tests</module>
+        <module>agentarts-distribution</module>
     </modules>
 
     <properties>
@@ -62,7 +63,7 @@
         <huaweicloud-sdk.version>3.1.207</huaweicloud-sdk.version>
 
         <!-- agentscope (provided/optional) -->
-        <agentscope.version>1.0.12</agentscope.version>
+        <agentscope.version>2.0.0</agentscope.version>
         <mcp-sdk.version>0.17.0</mcp-sdk.version>
 
         <!-- CLI -->
@@ -75,6 +76,9 @@
         <mockito.version>5.17.0</mockito.version>
         <test.timeout.default>30 s</test.timeout.default>
         <test.fork.timeout.seconds>180</test.fork.timeout.seconds>
+        <!-- E2E tests (cloud-dependent) are excluded from the default build;
+             run them explicitly with -Pe2e. -->
+        <surefire.excludedGroups>e2e</surefire.excludedGroups>
 
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
@@ -128,7 +132,7 @@
             </dependency>
             <dependency>
                 <groupId>com.huaweicloud.agentarts</groupId>
-                <artifactId>agentarts-sdk-mcpgateway</artifactId>
+                <artifactId>agentarts-sdk-gateway</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>
@@ -242,6 +246,16 @@
                 <version>${agentscope.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.agentscope</groupId>
+                <artifactId>agentscope-harness</artifactId>
+                <version>${agentscope.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.agentscope</groupId>
+                <artifactId>agentscope-extensions-model-openai</artifactId>
+                <version>${agentscope.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.modelcontextprotocol.sdk</groupId>
                 <artifactId>mcp-core</artifactId>
                 <version>${mcp-sdk.version}</version>
@@ -330,6 +344,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar -Xshare:off -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+                        <excludedGroups>${surefire.excludedGroups}</excludedGroups>
                         <forkedProcessTimeoutInSeconds>${test.fork.timeout.seconds}</forkedProcessTimeoutInSeconds>
                         <systemPropertyVariables>
                             <junit.jupiter.execution.timeout.default>${test.timeout.default}</junit.jupiter.execution.timeout.default>
@@ -465,6 +480,13 @@
     </build>
 
     <profiles>
+        <!-- Run cloud-dependent E2E tests: mvn verify -Pe2e -->
+        <profile>
+            <id>e2e</id>
+            <properties>
+                <surefire.excludedGroups></surefire.excludedGroups>
+            </properties>
+        </profile>
         <profile>
             <id>release</id>
             <build>

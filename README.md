@@ -18,11 +18,11 @@ AgentArts Java SDK is a comprehensive toolkit for developing, deploying, and man
 - **Cloud Identity** — Workload identity CRUD, access token issuance (forUserId/forJwt), three credential provider types (OAuth2/API Key/STS), resource token retrieval, `TokenPoller` for async OAuth2 flows, `.agent_identity.json` local bootstrap
 - **Memory Service** — Dual-plane client (AK/SK control plane + API Key data plane); space/session/message/memory CRUD; `MemorySession` convenience wrapper; OpenAPI "parts" format serialization; search with filters (query, topK, minScore)
 - **Code Interpreter** — Sandboxed code execution client; `CodeSession` AutoCloseable context manager; execute code/commands, upload/download files, install packages, clear context
-- **MCP Gateway** — Gateway and target CRUD management via AK/SK signed requests (10 API methods)
+- **Gateway** — Gateway and target CRUD management via AK/SK signed requests (10 API methods)
 - **Runtime Client** — Dual-plane client for agent lifecycle management: control plane (AK/SK), data plane invoke, raw NDJSON command streaming, file transfer and session lifecycle; `LocalRuntimeClient` for local development
 - **agentscope-java Integration** — stable AgentScope 1.0 API: `AgentscopeRuntimeHost`, request-scoped `AgentscopeRequestContext`, bounded `AgentscopeSessionExecutor`, `MemoryAgentStateStore` implementing `Session`, AgentTool adapters and message conversion
 - **CLI Toolkit** — Picocli-based CLI with 9 top-level commands and 30 grouped subcommands; Python-compatible `launch`, `configure`, `gateway` and concise gateway aliases remain available alongside the original Java names
-- **Spring Boot Starter** — AutoConfiguration for `AgentArtsRuntimeApp`, `@ConfigurationProperties` binding (`agentarts.*`), Actuator HealthIndicator (UP/busy/DOWN)
+- **Spring Boot Starter** — AutoConfiguration for `AgentArtsRuntimeApp`, `@ConfigurationProperties` binding (`agentarts.*`), Actuator HealthIndicator (UP healthy/busy, UNKNOWN not-started)
 - **Bounded Test Suite** — clean local verification executes unit, socket, protocol, CLI and cross-module tests under 30-second per-test, 180-second fork and 15-minute CI limits; cloud tests use an explicit three-tier safety model
 - **Reactor API Integration** — the HTTP transport streams SSE/NDJSON with demand control and cancellation; Memory exposes cold, non-blocking Reactor APIs plus synchronous compatibility wrappers
 
@@ -37,7 +37,7 @@ agentarts-sdk-java/
 ├── agentarts-sdk-identity/              # IdentityClient, auth annotations, TokenPoller, .agent_identity.json
 ├── agentarts-sdk-memory/                # MemoryClient (dual-plane: control + data), MemorySession
 ├── agentarts-sdk-tools/                 # CodeInterpreterClient, CodeSession
-├── agentarts-sdk-mcpgateway/            # MCPGatewayClient, Gateway/Target/ToolCall models
+├── agentarts-sdk-gateway/            # GatewayClient, Gateway/Target/ToolCall models
 ├── agentarts-sdk-integration-agentscope/# AgentScope 1.0 bridge, Session, bounded execution, tools
 ├── agentarts-toolkit-cli/               # Picocli CLI + standalone executable JAR
 ├── agentarts-spring-boot-starter/       # Spring Boot AutoConfiguration + Properties + HealthIndicator
@@ -56,7 +56,7 @@ agentarts-sdk-java/
 | [运行时 SDK](docs/cn/sdk_user_guide/runtime_user_guide.md) | AgentArtsRuntimeApp 服务端 + RuntimeClient 双平面客户端 + LocalRuntimeClient 本地开发 |
 | [Memory SDK](docs/cn/sdk_user_guide/memory_user_guide.md) | MemoryClient 双平面架构、MemorySession、完整 API（25+ 方法） |
 | [Code Interpreter SDK](docs/cn/sdk_user_guide/tools_user_guide.md) | CodeInterpreterClient、CodeSession、17 种操作方法 |
-| [MCP Gateway SDK](docs/cn/sdk_user_guide/mcp_gateway_user_guide.md) | MCPGatewayClient 网关/目标 CRUD、RequestResult |
+| [Gateway SDK](docs/cn/sdk_user_guide/gateway_user_guide.md) | GatewayClient 网关/目标 CRUD、RequestResult |
 | [Agent Identity SDK](docs/cn/sdk_user_guide/agent_identity_guide.md) | IdentityClient、注解模式、OAuth2/API Key/STS 三种凭证 |
 
 ### 测试指南（中文）
@@ -77,7 +77,7 @@ agentarts-sdk-java/
 | [invoke](docs/cn/toolkit_user_guide/invoke.md) | 调用 Agent |
 | [destroy](docs/cn/toolkit_user_guide/destroy.md) | 销毁 Agent |
 | [runtime](docs/cn/toolkit_user_guide/runtime_cli.md) | 运行时管理（6 个子命令） |
-| [gateway / mcp-gateway](docs/cn/toolkit_user_guide/mcp_gateway_cli.md) | MCP 网关管理（10 个子命令及兼容别名） |
+| [gateway / gateway](docs/cn/toolkit_user_guide/gateway_cli.md) | MCP 网关管理（10 个子命令及兼容别名） |
 
 ## Quick Start
 
@@ -136,7 +136,8 @@ public class MyAgent {
 # Using CLI (when toolkit-cli is built)
 agentarts dev
 
-# Or run directly
+# Or run directly (from your own project where the runtime dependency was added
+# in step 1; exec:java resolves via Maven's default org.codehaus.mojo plugin-group)
 mvn compile exec:java -Dexec.mainClass="MyAgent"
 ```
 
@@ -202,7 +203,7 @@ app.registerManagedResource(session::close);
 app.runUntilShutdown(8080);
 ```
 
-> Verified compilable & constructible by `AgentscopeIntegrationSnippetTest`. For a complete runnable demo (interactive streaming, multi-turn memory, `@Tool`-annotated tools, server mode), see [`AgentScopeIntegrationExample.java`](agentarts-sdk-examples/src/main/java/com/huaweicloud/agentarts/examples/AgentScopeIntegrationExample.java).
+> `AgentscopeIntegrationSnippetTest` verifies construction of `AgentArtsRuntimeApp`, `AgentscopeRuntimeHost`, `ReActAgent` and `OpenAIChatModel`; the `AgentscopeSessionExecutor.call` wiring shown above is exercised by the runnable demo below, not by the snippet test. For that complete demo (interactive streaming, multi-turn memory, `@Tool`-annotated tools, server mode), see [`AgentScopeIntegrationExample.java`](agentarts-sdk-examples/src/main/java/com/huaweicloud/agentarts/examples/AgentScopeIntegrationExample.java).
 
 ## Spring Boot Starter
 
@@ -229,7 +230,7 @@ agentarts:
     space-id: ${AGENTARTS_MEMORY_SPACE_ID}
 ```
 
-The starter auto-configures `AgentArtsRuntimeApp` and provides an Actuator health indicator at `/actuator/health`.
+The starter auto-configures `AgentArtsRuntimeApp` and provides an Actuator health indicator at `/actuator/health`. Note: `agentarts.runtime.auto-start` is honored via a `@ConditionalOnProperty` gate (it triggers the runtime starter bean) rather than being bound into `AgentArtsProperties`; the bound runtime fields are `port` and `max-concurrency`.
 
 ## Examples
 
@@ -329,7 +330,7 @@ See also the [Python SDK](https://github.com/huaweicloud/agentarts-sdk-python) f
 ## Building from Source
 
 ```bash
-git clone https://github.com/gaotong132/agentarts-sdk-java.git
+git clone https://github.com/huaweicloud/agentarts-sdk-java.git
 cd agentarts-sdk-java
 mvn clean verify
 ```
@@ -375,11 +376,11 @@ The test suite spans three layers. The latest clean local verification executed 
 
 | Layer | Description |
 |---|---|
-| Unit + local integration | V11 signing, HTTP client, Runtime server/client, Identity, Memory, Tools, MCP Gateway, agentscope, Spring Boot, cross-module — no cloud credentials needed |
+| Unit + local integration | V11 signing, HTTP client, Runtime server/client, Identity, Memory, Tools, Gateway, agentscope, Spring Boot, cross-module — no cloud credentials needed |
 | Cloud E2E | Read-only probes plus opt-in lifecycle and billable suites; actual executed counts must be taken from the current Surefire reports |
 | CLI scaffolding | Template rendering, picocli command-tree/option parsing, init/config structure (no Docker/cloud) |
 
-Cloud E2E covers Identity, Memory, MCP Gateway, Code Interpreter, Runtime, auth decorators, read-only probes, and CLI workflows. A successful default `mvn test` does not prove cloud behavior: classes guarded by `@BeforeAll` assumptions can be reported with `Tests run: 0`. Execution requirements and result interpretation are documented in the [E2E 测试指南](docs/cn/e2e_testing_guide.md).
+Cloud E2E covers Identity, Memory, Gateway, Code Interpreter, Runtime, auth decorators, read-only probes, and CLI workflows. A successful default `mvn test` does not prove cloud behavior: classes guarded by `@BeforeAll` assumptions can be reported with `Tests run: 0`. Execution requirements and result interpretation are documented in the [E2E 测试指南](docs/cn/e2e_testing_guide.md).
 
 ### E2E Three-Tier Safety Model
 
@@ -408,7 +409,7 @@ Key dependencies aligned with [agentscope-java](https://github.com/agentscope-ai
 
 ## API Compatibility
 
-The Java SDK is aligned with the pinned Python SDK for core, service, Runtime, Identity, Memory, Tools, MCP Gateway and CLI behavior. Python framework integrations and framework-specific templates are intentionally excluded; Java provides a production AgentScope integration instead. Language-idiomatic type shapes may differ, while wire behavior, defaults, error propagation and lifecycle semantics are covered by compatibility tests.
+The Java SDK is aligned with the pinned Python SDK for core, service, Runtime, Identity, Memory, Tools, Gateway and CLI behavior. Python framework integrations and framework-specific templates are intentionally excluded; Java provides a production AgentScope integration instead. Language-idiomatic type shapes may differ, while wire behavior, defaults, error propagation and lifecycle semantics are covered by compatibility tests.
 
 | Aspect | Coverage |
 |---|---|
@@ -418,10 +419,10 @@ The Java SDK is aligned with the pinned Python SDK for core, service, Runtime, I
 | Context Fields | 7 thread-local context fields (session, request, user, token, OAuth2) |
 | Memory API | 15 methods + MemorySession wrapper + 15 model classes |
 | Tools API | 17 methods + CodeSession context manager |
-| MCP Gateway API | 10 methods (gateway CRUD + target CRUD) |
+| Gateway API | 10 methods (gateway CRUD + target CRUD) |
 | Runtime Client API | 17 methods: agent CRUD (7) + endpoint CRUD (4) + data plane (6: invoke, exec, upload, download, sessions) |
 | Identity API | Workload identity CRUD + credential providers + access tokens |
-| CLI Commands | 9 top-level + 8 config + 6 runtime + 10 mcp-gateway + 6 memory subcommands |
+| CLI Commands | 9 top-level + 8 config + 6 runtime + 10 gateway + 6 memory subcommands |
 | agentscope Integration | AgentScope `Session`, bounded per-session executor, request context bridge, AgentTool adapters, MessageConverter |
 | Spring Boot Starter | AutoConfiguration, ConfigurationProperties, HealthIndicator |
 | Verification | 807 tests in the latest clean local run; cloud lifecycle/billable execution remains explicitly opt-in |

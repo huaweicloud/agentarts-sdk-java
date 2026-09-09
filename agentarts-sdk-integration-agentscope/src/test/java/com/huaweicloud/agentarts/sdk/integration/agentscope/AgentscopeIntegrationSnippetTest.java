@@ -3,16 +3,16 @@ package com.huaweicloud.agentarts.sdk.integration.agentscope;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.runtime.AgentscopeRuntimeHost;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.state.MemoryAgentStateStore;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.CodeInterpreterTool;
-import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.MCPGatewayTool;
+import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.GatewayTool;
 import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
-import com.huaweicloud.agentarts.sdk.mcpgateway.MCPGatewayClient;
+import com.huaweicloud.agentarts.sdk.gateway.GatewayClient;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
 import com.huaweicloud.agentarts.sdk.tools.CodeInterpreterClient;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
-import io.agentscope.core.model.OpenAIChatModel;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -29,14 +29,14 @@ class AgentscopeIntegrationSnippetTest {
     @Test
     void snippetConstructsSuccessfully() {
         // Clients — construction is cloud-free; AK/SK are read lazily at sign time.
-        MCPGatewayClient gatewayClient = new MCPGatewayClient();
+        GatewayClient gatewayClient = new GatewayClient();
         CodeInterpreterClient interpreterClient = new CodeInterpreterClient("cn-southwest-2");
         MemoryClient memoryClient = new MemoryClient("cn-southwest-2", "dummy-api-key");
         String spaceId = "dummy-space";
 
-        // Register AgentArts tools (MCP Gateway, Code Interpreter) as agentscope AgentTools.
+        // Register AgentArts tools (Gateway, Code Interpreter) as agentscope AgentTools.
         Toolkit toolkit = new Toolkit();
-        toolkit.registerAgentTool(new MCPGatewayTool(gatewayClient));
+        toolkit.registerAgentTool(new GatewayTool(gatewayClient));
         toolkit.registerAgentTool(new CodeInterpreterTool(interpreterClient));
 
         // Use AgentArts Memory as the agent's state store (client + spaceId).
@@ -55,10 +55,8 @@ class AgentscopeIntegrationSnippetTest {
         new AgentscopeRuntimeHost(app, (payload, ctx) -> {
             String message = (String) payload.getOrDefault("message", "");
             synchronized (agent) {
-                agent.loadIfExists(session, ctx.sessionKey());
                 Msg input = Msg.builder().role(MsgRole.USER).textContent(message).build();
                 var reply = agent.call(input).block();
-                agent.saveTo(session, ctx.sessionKey());
                 return Map.of("reply", reply != null ? reply.getTextContent() : "");
             }
         });

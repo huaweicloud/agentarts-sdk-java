@@ -44,6 +44,7 @@ public final class Constants {
 
     public static final String ENV_HUAWEICLOUD_SDK_IAM_ENDPOINT = "HUAWEICLOUD_SDK_IAM_ENDPOINT";
     public static final String ENV_HUAWEICLOUD_SDK_SWR_ENDPOINT = "HUAWEICLOUD_SDK_SWR_ENDPOINT";
+    public static final String ENV_HUAWEICLOUD_SDK_SWR_LOGIN_SERVER = "HUAWEICLOUD_SDK_SWR_LOGIN_SERVER";
     public static final String ENV_HUAWEICLOUD_SDK_AGENTIDENTITY_ENDPOINT = "HUAWEICLOUD_SDK_AGENTIDENTITY_ENDPOINT";
 
     public static final String ENV_AGENTARTS_LOG_LEVEL = "AGENTARTS_LOG_LEVEL";
@@ -228,6 +229,35 @@ public final class Constants {
 
     public static String getSwrEndpoint() {
         return getSwrEndpoint(null);
+    }
+
+    /**
+     * Get the SWR registry login server (Docker login server) for the given region.
+     *
+     * <p>Checks the environment variable
+     * {@value #ENV_HUAWEICLOUD_SDK_SWR_LOGIN_SERVER} first — some regions use a
+     * different Docker registry host than the default format. Falls back to
+     * {@code swr.{region}.myhuaweicloud.com} when the variable is unset.</p>
+     */
+    public static String getSwrLoginServer(String region) {
+        return resolveSwrLoginServer(getEnv(ENV_HUAWEICLOUD_SDK_SWR_LOGIN_SERVER), region);
+    }
+
+    public static String getSwrLoginServer() {
+        return getSwrLoginServer(null);
+    }
+
+    /**
+     * Resolve the SWR login server from an optional env override, falling back
+     * to the default {@code swr.{region}.myhuaweicloud.com} format. Package-visible
+     * so tests can exercise the override path without mutating the process env.
+     */
+    static String resolveSwrLoginServer(String envOverride, String region) {
+        if (JsonUtils.isNotBlank(envOverride)) {
+            return envOverride;
+        }
+        String r = JsonUtils.isNotBlank(region) ? region : getRegion();
+        return "swr." + r + ".myhuaweicloud.com";
     }
 
     /**

@@ -1,6 +1,6 @@
 package com.huaweicloud.agentarts.sdk.integration.agentscope.runtime;
 
-import io.agentscope.core.state.SessionKey;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.tool.ToolExecutionContext;
 
 /**
@@ -19,10 +19,11 @@ public record AgentscopeRequestContext(
     private static final String DEFAULT_USER_ID = "anonymous";
     private static final String DEFAULT_SESSION_ID = "default";
 
-    /** Return a tenant-aware key suitable for AgentScope {@code Session} storage. */
-    public SessionKey sessionKey() {
-        return new RequestSessionKey(normalize(userId, DEFAULT_USER_ID),
-                normalize(sessionId, DEFAULT_SESSION_ID));
+    /** Return a tenant-aware context suitable for AgentScope {@code Session} storage. */
+    public RuntimeContext runtimeContext() {
+        RuntimeContext.Builder builder = RuntimeContext.builder();
+        return builder.sessionId(normalize(sessionId, DEFAULT_SESSION_ID))
+                .userId(normalize(userId, DEFAULT_USER_ID)).build();
     }
 
     /** Build the context consumed by AgentScope tools for this invocation. */
@@ -34,24 +35,4 @@ public record AgentscopeRequestContext(
         return value == null || value.isBlank() ? fallback : value;
     }
 
-    /** Structured session key keeps user and session identity unambiguous. */
-    public record RequestSessionKey(String userId, String sessionId) implements SessionKey {
-        public RequestSessionKey {
-            if (userId == null || userId.isBlank()) {
-                throw new IllegalArgumentException("userId must not be blank");
-            }
-            if (sessionId == null || sessionId.isBlank()) {
-                throw new IllegalArgumentException("sessionId must not be blank");
-            }
-        }
-
-        @Override
-        public String toIdentifier() {
-            return lengthPrefix(userId) + userId + lengthPrefix(sessionId) + sessionId;
-        }
-
-        private static String lengthPrefix(String value) {
-            return value.length() + ":";
-        }
-    }
 }

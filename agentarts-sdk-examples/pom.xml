@@ -13,14 +13,11 @@
     <artifactId>agentarts-sdk-examples</artifactId>
     <properties>
         <jackson.version>2.18.8</jackson.version>
+        <jacoco.skip>true</jacoco.skip>
     </properties>
 
     <name>AgentArts SDK :: Examples</name>
     <description>Example projects demonstrating AgentArts Java SDK usage</description>
-
-    <properties>
-        <jacoco.skip>true</jacoco.skip>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -143,6 +140,10 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-openai</artifactId>
         </dependency>
     </dependencies>
 

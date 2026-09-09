@@ -1,6 +1,6 @@
 package com.huaweicloud.agentarts.sdk.tests.e2e;
 
-import com.huaweicloud.agentarts.sdk.mcpgateway.MCPGatewayClient;
+import com.huaweicloud.agentarts.sdk.gateway.GatewayClient;
 import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.service.runtime.RuntimeClient;
 import com.huaweicloud.agentarts.sdk.tools.CodeInterpreterClient;
@@ -34,22 +34,22 @@ class ReadonlyListsTest {
         }
     }
 
-    // 2. test_list_mcp_gateways
+    // 2. test_list_gateways
     @Test
-    @DisplayName("list_mcp_gateways succeeds and returns a parseable JSON body")
-    void testListMcpGateways() {
-        try (MCPGatewayClient client = new MCPGatewayClient()) {
-            RequestResult result = client.listMcpGateways(null, 1, null);
-            // May fail with 403 if tenant hasn't enabled MCP Gateway service
+    @DisplayName("list_gateways succeeds and returns a parseable JSON body")
+    void testListGateways() {
+        try (GatewayClient client = new GatewayClient()) {
+            RequestResult result = client.listGateways(null, 1, null);
+            // May fail with 403 if tenant hasn't enabled Gateway service
             // In Python this is: assert result.success, result.error
             if (!result.isSuccess() && result.getStatusCode() == 403) {
-                System.err.println("MCP Gateway service not enabled for tenant: " + result.getError());
-                assumeTrue(false, "MCP Gateway service not enabled for this tenant");
+                System.err.println("Gateway service not enabled for tenant: " + result.getError());
+                assumeTrue(false, "Gateway service not enabled for this tenant");
             }
             assertTrue(result.isSuccess(), result.getError());
             // Body must parse as JSON (not just an empty 200) — a real
             // connectivity + auth + deserialization probe.
-            assertNotNull(result.getDataAsJson(), "list_mcp_gateways body should be parseable JSON");
+            assertNotNull(result.getDataAsJson(), "list_gateways body should be parseable JSON");
         }
     }
 

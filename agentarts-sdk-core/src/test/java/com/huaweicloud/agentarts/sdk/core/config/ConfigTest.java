@@ -211,7 +211,7 @@ class ConfigTest {
             RuntimeConfig config = new RuntimeConfig();
             assertNull(config.getAgentId());
             assertNull(config.getAgentGatewayId());
-            assertEquals("X86_64", config.getArch());
+            assertEquals("arm64", config.getArch());
             assertNull(config.getExecutionAgencyName());
             assertNull(config.getIdentityConfiguration());
             assertNull(config.getNetworkConfig());
@@ -246,7 +246,7 @@ class ConfigTest {
 
         @Test
         void jsonDeserializationWithNested() throws Exception {
-            String json = "{\"agent_id\":\"a1\",\"agent_gateway_id\":\"g1\",\"arch\":\"X86_64\","
+            String json = "{\"agent_id\":\"a1\",\"agent_gateway_id\":\"g1\",\"arch\":\"arm64\","
                     + "\"invoke_config\":{\"protocol\":\"HTTP\",\"port\":8080},"
                     + "\"environment_variables\":{\"K\":\"V\"},\"tags\":{\"t1\":\"v1\"}}";
             RuntimeConfig config = JsonUtils.MAPPER.readValue(json, RuntimeConfig.class);

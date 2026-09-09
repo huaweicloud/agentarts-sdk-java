@@ -12,7 +12,7 @@
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <agentarts.version>0.1.0-SNAPSHOT</agentarts.version>
-        <agentscope.version>1.0.12</agentscope.version>
+        <agentscope.version>2.0.0</agentscope.version>
     </properties>
 
     <dependencies>
@@ -23,7 +23,12 @@
         </dependency>
         <dependency>
             <groupId>io.agentscope</groupId>
-            <artifactId>agentscope-core</artifactId>
+            <artifactId>agentscope-harness</artifactId>
+            <version>${agentscope.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-openai</artifactId>
             <version>${agentscope.version}</version>
         </dependency>
     </dependencies>

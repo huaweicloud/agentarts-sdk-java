@@ -35,7 +35,7 @@
         </dependency>
         <dependency>
             <groupId>com.huaweicloud.agentarts</groupId>
-            <artifactId>agentarts-sdk-mcpgateway</artifactId>
+            <artifactId>agentarts-sdk-gateway</artifactId>
         </dependency>
         <dependency>
             <groupId>com.huaweicloud.agentarts</groupId>
@@ -45,7 +45,12 @@
         <!-- agentscope-core (provided - avoid forcing the dependency) -->
         <dependency>
             <groupId>io.agentscope</groupId>
-            <artifactId>agentscope-core</artifactId>
+            <artifactId>agentscope-harness</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-openai</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

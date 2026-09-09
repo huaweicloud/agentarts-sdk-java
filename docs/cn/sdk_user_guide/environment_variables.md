@@ -126,6 +126,7 @@ $env:AGENTARTS_CODEINTERPRETER_DATA_ENDPOINT = "https://your-ci-endpoint.com"
 |--------|------|--------|
 | `HUAWEICLOUD_SDK_IAM_ENDPOINT` | IAM 服务端点 | `https://iam.{region}.myhuaweicloud.com` |
 | `HUAWEICLOUD_SDK_SWR_ENDPOINT` | SWR 服务端点 | `https://swr-api.{region}.myhuaweicloud.com` |
+| `HUAWEICLOUD_SDK_SWR_LOGIN_SERVER` | SWR Docker 登录服务器（部分区域格式不同，可覆盖） | `swr.{region}.myhuaweicloud.com` |
 | `HUAWEICLOUD_SDK_AGENTIDENTITY_ENDPOINT` | 代理身份服务端点 | `https://agent-identity.{region}.myhuaweicloud.com` |
 
 ## 运行时配置
@@ -156,6 +157,7 @@ $env:AGENTARTS_CODEINTERPRETER_DATA_ENDPOINT = "https://your-ci-endpoint.com"
 | `AGENTARTS_RUNTIME_DATA_ENDPOINT` | `Constants.ENV_AGENTARTS_RUNTIME_DATA_ENDPOINT` | `Constants.getRuntimeDataPlaneEndpoint()` |
 | `AGENTARTS_MEMORY_DATA_ENDPOINT` | `Constants.ENV_AGENTARTS_MEMORY_DATA_ENDPOINT` | `Constants.getMemoryEndpoint("data")` |
 | `AGENTARTS_CODEINTERPRETER_DATA_ENDPOINT` | `Constants.ENV_AGENTARTS_CODEINTERPRETER_DATA_ENDPOINT` | `Constants.getCodeInterpreterDataPlaneEndpoint()` |
+| `HUAWEICLOUD_SDK_SWR_LOGIN_SERVER` | `Constants.ENV_HUAWEICLOUD_SDK_SWR_LOGIN_SERVER` | `Constants.getSwrLoginServer(region)` |
 
 ## 常见问题
 

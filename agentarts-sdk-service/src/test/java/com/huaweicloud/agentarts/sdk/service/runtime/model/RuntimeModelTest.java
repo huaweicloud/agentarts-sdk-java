@@ -27,6 +27,7 @@ class RuntimeModelTest {
             assertNull(req.getName());
             assertNull(req.getDescription());
             assertNull(req.getArtifactSource());
+            assertNull(req.getStorageConfig());
             assertNull(req.getIdentityConfiguration());
             assertNull(req.getInvokeConfig());
             assertNull(req.getNetworkConfig());
@@ -43,6 +44,7 @@ class RuntimeModelTest {
             assertSame(req, req.withName("test"));
             assertSame(req, req.withDescription("desc"));
             assertSame(req, req.withArtifactSource(Map.of()));
+            assertSame(req, req.withStorageConfig(Map.of()));
             assertSame(req, req.withIdentityConfiguration(Map.of()));
             assertSame(req, req.withInvokeConfig(Map.of()));
             assertSame(req, req.withNetworkConfig(Map.of()));

@@ -345,13 +345,29 @@ class CliE2ETest {
         }
 
         @Test
-        void initSwrDefaultsToProjectName(@TempDir Path tempDir) throws Exception {
+        void defaultAgentNameMatchesPythonFormat() {
+            // Mirrors the Python SDK's generate_default_agent_name():
+            // "myagent-" + 5 random lowercase letters/digits.
+            String name = InitOperation.generateDefaultAgentName();
+            assertTrue(name.matches("myagent-[a-z0-9]{5}"),
+                    "default name should be myagent-<5 random alnum chars>, got: " + name);
+        }
+
+        @Test
+        void initSwrDefaultsFollowPythonSdkRules(@TempDir Path tempDir) throws Exception {
             InitOperation.initProject("basic", "default-swr", tempDir.toString(),
                     "cn-southwest-2", null, null);
 
             String config = Files.readString(tempDir.resolve("default-swr/.agentarts_config.yaml"));
-            assertTrue(config.contains("organization: default-swr"), "SWR org should default to name");
-            assertTrue(config.contains("repository: default-swr"), "SWR repo should default to name");
+            // swr_repo defaults to "agent_<name>" (Python: swr_repo or f"agent_{name}")
+            assertTrue(config.contains("repository: agent_default-swr"),
+                    "SWR repo should default to agent_<name>. config=" + config);
+            // swr_org defaults to "agentarts-<region_short>-<ak_hash8>-org"
+            // (Python: generate_swr_org_name(region)); the ak hash is md5(ak)[:8],
+            // or 8 random chars when no AK is configured, so match the shape.
+            assertTrue(config.lines().anyMatch(line -> line.trim().matches(
+                            "organization: agentarts-cnso2-[a-z0-9]{8}-org")),
+                    "SWR org should follow agentarts-<region>-<hash>-org pattern. config=" + config);
         }
     }
 
@@ -652,7 +668,7 @@ class CliE2ETest {
             assertTrue(output.contains("invoke"), "Missing 'invoke' in help");
             assertTrue(output.contains("destroy"), "Missing 'destroy' in help");
             assertTrue(output.contains("runtime"), "Missing 'runtime' in help");
-            assertTrue(output.contains("mcp-gateway"), "Missing 'mcp-gateway' in help");
+            assertTrue(output.contains("gateway"), "Missing 'gateway' in help");
             assertTrue(output.contains("memory"), "Missing 'memory' in help");
         }
 
@@ -700,21 +716,21 @@ class CliE2ETest {
         }
 
         @Test
-        void mcpGatewayHelpShowsSubcommands() {
+        void gatewayHelpShowsSubcommands() {
             StringWriter sw = new StringWriter();
-            cli.getSubcommands().get("mcp-gateway").usage(new PrintWriter(sw));
+            cli.getSubcommands().get("gateway").usage(new PrintWriter(sw));
             String output = sw.toString();
 
-            assertTrue(output.contains("create-mcp-gateway"));
-            assertTrue(output.contains("update-mcp-gateway"));
-            assertTrue(output.contains("delete-mcp-gateway"));
-            assertTrue(output.contains("get-mcp-gateway"));
-            assertTrue(output.contains("list-mcp-gateways"));
-            assertTrue(output.contains("create-mcp-gateway-target"));
-            assertTrue(output.contains("update-mcp-gateway-target"));
-            assertTrue(output.contains("delete-mcp-gateway-target"));
-            assertTrue(output.contains("get-mcp-gateway-target"));
-            assertTrue(output.contains("list-mcp-gateway-targets"));
+            assertTrue(output.contains("create-gateway"));
+            assertTrue(output.contains("update-gateway"));
+            assertTrue(output.contains("delete-gateway"));
+            assertTrue(output.contains("get-gateway"));
+            assertTrue(output.contains("list-gateways"));
+            assertTrue(output.contains("create-gateway-target"));
+            assertTrue(output.contains("update-gateway-target"));
+            assertTrue(output.contains("delete-gateway-target"));
+            assertTrue(output.contains("get-gateway-target"));
+            assertTrue(output.contains("list-gateway-targets"));
         }
 
         @Test
@@ -892,10 +908,30 @@ class CliE2ETest {
             assertNotNull(compiler, "Template compilation requires a JDK");
             java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
 
+            StringBuilder classpathBuilder = new StringBuilder();
+            classpathBuilder.append(System.getProperty("java.class.path"));
+            // 1. 获取基础类路径
+            String baseClasspath = System.getProperty("java.class.path");
+            classpathBuilder.append(baseClasspath);
+
+            // 2. 兼容 Maven Surefire/Failsafe 插件在测试时生成的特定类路径属性
+            String surefireClasspath = System.getProperty("surefire.test.class.path");
+            if (surefireClasspath != null && !surefireClasspath.isEmpty()) {
+                classpathBuilder.append(java.io.File.pathSeparator).append(surefireClasspath);
+            }
+
+            // 3. 兜底逻辑：如果在 IDE 中运行，AppClassLoader 的 ClassPath 实际已包含在 java.class.path 中
+            // 但如果是在复杂的多模块 Maven 命令行中，需要把当前类所在目录也加进去
+            java.net.URL currentClassLoc = this.getClass().getProtectionDomain().getCodeSource().getLocation();
+            if (currentClassLoc != null) {
+                classpathBuilder.append(java.io.File.pathSeparator).append(currentClassLoc.getPath());
+            }
+            System.out.println(classpathBuilder.toString());
+
             int exitCode = compiler.run(null, output, output,
                     "-proc:none",
                     "--release", "17",
-                    "-classpath", System.getProperty("java.class.path"),
+                    "-classpath", classpathBuilder.toString(),
                     "-d", classes.toString(),
                     source.toString());
 
@@ -929,7 +965,7 @@ class CliE2ETest {
             assertNotEquals(basicAgent, asAgent, "Different templates should produce different output");
             String agentscopePom = Files.readString(tempDir.resolve("proj-agentscope/pom.xml"));
             assertTrue(agentscopePom.contains("agentarts-sdk-integration-agentscope"));
-            assertTrue(agentscopePom.contains("agentscope-core"));
+            assertTrue(agentscopePom.contains("agentscope-harness"));
             assertFalse(agentscopePom.contains("agentarts-sdk-runtime</artifactId>"));
         }
     }

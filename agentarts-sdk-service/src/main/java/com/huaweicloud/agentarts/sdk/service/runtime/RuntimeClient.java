@@ -174,6 +174,7 @@ public class RuntimeClient implements AutoCloseable {
             UpdateAgentRequest updateReq = new UpdateAgentRequest()
                     .withDescription(req.getDescription())
                     .withArtifactSource(req.getArtifactSource())
+                    .withStorageConfig(req.getStorageConfig())
                     .withInvokeConfig(req.getInvokeConfig())
                     .withNetworkConfig(req.getNetworkConfig())
                     .withObservability(req.getObservability())

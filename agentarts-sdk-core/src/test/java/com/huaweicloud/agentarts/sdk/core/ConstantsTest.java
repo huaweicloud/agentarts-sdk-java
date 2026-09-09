@@ -63,6 +63,7 @@ class ConstantsTest {
         void serviceEndpointEnvVarNames() {
             assertEquals("HUAWEICLOUD_SDK_IAM_ENDPOINT", Constants.ENV_HUAWEICLOUD_SDK_IAM_ENDPOINT);
             assertEquals("HUAWEICLOUD_SDK_SWR_ENDPOINT", Constants.ENV_HUAWEICLOUD_SDK_SWR_ENDPOINT);
+            assertEquals("HUAWEICLOUD_SDK_SWR_LOGIN_SERVER", Constants.ENV_HUAWEICLOUD_SDK_SWR_LOGIN_SERVER);
             assertEquals("HUAWEICLOUD_SDK_AGENTIDENTITY_ENDPOINT", Constants.ENV_HUAWEICLOUD_SDK_AGENTIDENTITY_ENDPOINT);
         }
     }
@@ -252,6 +253,25 @@ class ConstantsTest {
         void swrEndpointNoArg() {
             String endpoint = Constants.getSwrEndpoint();
             assertTrue(endpoint.startsWith("https://swr-api."));
+        }
+
+        @Test
+        void swrLoginServerDefaultFormat() {
+            // Env var unset: falls back to the default swr.{region}.myhuaweicloud.com format.
+            String loginServer = Constants.getSwrLoginServer("cn-southwest-2");
+            assertEquals("swr.cn-southwest-2.myhuaweicloud.com", loginServer);
+        }
+
+        @Test
+        void swrLoginServerRespectsEnvOverride() {
+            // The override path reads the env at runtime (not settable in the test JVM),
+            // so exercise the resolution logic directly through the package-visible seam.
+            assertEquals("registry.example.com",
+                    Constants.resolveSwrLoginServer("registry.example.com", "cn-southwest-2"));
+            assertEquals("swr.cn-north-4.myhuaweicloud.com",
+                    Constants.resolveSwrLoginServer(null, "cn-north-4"));
+            assertEquals("swr.cn-north-4.myhuaweicloud.com",
+                    Constants.resolveSwrLoginServer("", "cn-north-4"));
         }
 
         @Test

@@ -188,7 +188,7 @@ set HUAWEICLOUD_SDK_REGION=cn-southwest-2
 | `invoke` | [invoke.md](invoke.md) |
 | `destroy` | [destroy.md](destroy.md) |
 | `runtime` | [runtime_cli.md](runtime_cli.md) |
-| `gateway`（兼容 `mcp-gateway`） | [mcp_gateway_cli.md](mcp_gateway_cli.md) |
+| `gateway`（兼容 `gateway`） | [gateway_cli.md](gateway_cli.md) |
 | `memory` | [README 中的 Memory CLI 索引](../../../README.md#cli-工具指南中文) |
 
 典型流程：`init` → `config` → `dev`（本地验证）→ `deploy`（云端）→ `invoke`。

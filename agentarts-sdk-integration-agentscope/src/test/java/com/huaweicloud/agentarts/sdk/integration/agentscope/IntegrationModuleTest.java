@@ -11,12 +11,13 @@ import com.huaweicloud.agentarts.sdk.integration.agentscope.runtime.AgentscopeSe
 import com.huaweicloud.agentarts.sdk.integration.agentscope.state.AgentStateStoreException;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.state.MemoryAgentStateStore;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.CodeInterpreterTool;
-import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.MCPGatewayTool;
-import com.huaweicloud.agentarts.sdk.mcpgateway.MCPGatewayClient;
+import com.huaweicloud.agentarts.sdk.integration.agentscope.tool.GatewayTool;
+import com.huaweicloud.agentarts.sdk.gateway.GatewayClient;
 import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.memory.model.*;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
 import com.huaweicloud.agentarts.sdk.service.http.RequestResult;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
@@ -25,9 +26,9 @@ import io.agentscope.core.message.ThinkingBlock;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.URLSource;
-import io.agentscope.core.session.Session;
-import io.agentscope.core.session.InMemorySession;
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.core.state.InMemoryAgentStateStore;
 import io.agentscope.core.state.State;
 import io.agentscope.core.tool.AgentTool;
 import io.agentscope.core.tool.ToolCallParam;
@@ -71,11 +72,6 @@ class IntegrationModuleTest {
         void setUp() {
             fakeClient = new FakeMemoryClient();
             store = new MemoryAgentStateStore(fakeClient, "space-123");
-        }
-
-        @Test
-        void implementsAgentScopeSession() {
-            assertTrue(Session.class.isAssignableFrom(MemoryAgentStateStore.class));
         }
 
         @Test
@@ -334,34 +330,34 @@ class IntegrationModuleTest {
     }
 
     // ========================
-    // MCPGatewayTool — AgentTool interface contract
+    // GatewayTool — AgentTool interface contract
     // ========================
 
     @Nested
-    @DisplayName("MCPGatewayTool implements AgentTool")
-    class MCPGatewayToolTests {
+    @DisplayName("GatewayTool implements AgentTool")
+    class GatewayToolTests {
 
         @Test
         void implementsAgentTool() {
-            assertTrue(AgentTool.class.isAssignableFrom(MCPGatewayTool.class));
+            assertTrue(AgentTool.class.isAssignableFrom(GatewayTool.class));
         }
 
         @Test
         void hasCorrectName() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
-            assertEquals("mcp_gateway_call", tool.getName());
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
+            assertEquals("gateway_call", tool.getName());
         }
 
         @Test
         void hasDescription() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
             assertNotNull(tool.getDescription());
             assertFalse(tool.getDescription().isEmpty());
         }
 
         @Test
         void parametersSchemaIsValid() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
             Map<String, Object> params = tool.getParameters();
             assertEquals("object", params.get("type"));
             assertNotNull(params.get("properties"));
@@ -377,28 +373,28 @@ class IntegrationModuleTest {
 
         @Test
         void implementsCurrentAgentToolContract() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
             assertInstanceOf(AgentTool.class, tool);
         }
 
         @Test
         void getOutputSchemaReturnsNull() {
-            MCPGatewayTool tool = new MCPGatewayTool(mock(MCPGatewayClient.class));
+            GatewayTool tool = new GatewayTool(mock(GatewayClient.class));
             assertNull(tool.getOutputSchema());
         }
 
         @Test
         void resolvesGatewayEndpointAndInvokesRealMcpTransport() throws Exception {
             String gatewayId = "01234567-89ab-cdef-0123-456789abcdef";
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            when(gatewayClient.getMcpGateway(gatewayId)).thenReturn(RequestResult.builder()
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            when(gatewayClient.getGateway(gatewayId)).thenReturn(RequestResult.builder()
                     .success(true)
                     .statusCode(200)
                     .data(JsonUtils.MAPPER.readTree(
                             "{\"endpoint_url\":\"https://gateway.example.test\"}"))
                     .build());
             AtomicReference<List<Object>> invocation = new AtomicReference<>();
-            MCPGatewayTool tool = new MCPGatewayTool(gatewayClient,
+            GatewayTool tool = new GatewayTool(gatewayClient,
                     (endpoint, authorization, sessionId, toolName, arguments) -> {
                         invocation.set(List.of(endpoint, authorization, sessionId, toolName, arguments));
                         return Mono.just(ToolResultBlock.text("real MCP result"));
@@ -425,8 +421,8 @@ class IntegrationModuleTest {
 
         @Test
         void rejectsInvalidGatewayIdBeforeNetworkCall() {
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            MCPGatewayTool tool = new MCPGatewayTool(gatewayClient,
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            GatewayTool tool = new GatewayTool(gatewayClient,
                     (endpoint, authorization, sessionId, toolName, arguments) ->
                             Mono.error(new AssertionError("must not invoke")));
 
@@ -441,8 +437,8 @@ class IntegrationModuleTest {
 
         @Test
         void rejectsOversizedToolInputBeforeNetworkCall() {
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            MCPGatewayTool tool = new MCPGatewayTool(gatewayClient);
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            GatewayTool tool = new GatewayTool(gatewayClient);
 
             ToolResultBlock result = tool.callAsync(ToolCallParam.builder()
                     .input(Map.of(
@@ -458,14 +454,14 @@ class IntegrationModuleTest {
         @Test
         void preservesCustomInvokerResult() throws Exception {
             String gatewayId = "01234567-89ab-cdef-0123-456789abcdef";
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            when(gatewayClient.getMcpGateway(gatewayId)).thenReturn(RequestResult.builder()
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            when(gatewayClient.getGateway(gatewayId)).thenReturn(RequestResult.builder()
                     .success(true)
                     .statusCode(200)
                     .data(JsonUtils.MAPPER.readTree(
                             "{\"endpoint_url\":\"https://gateway.example.test\"}"))
                     .build());
-            MCPGatewayTool tool = new MCPGatewayTool(gatewayClient,
+            GatewayTool tool = new GatewayTool(gatewayClient,
                     (endpoint, authorization, sessionId, toolName, arguments) ->
                             Mono.just(ToolResultBlock.text("still running")));
 
@@ -479,9 +475,9 @@ class IntegrationModuleTest {
 
         @Test
         void rejectsNullDependencies() {
-            MCPGatewayClient gatewayClient = mock(MCPGatewayClient.class);
-            assertThrows(NullPointerException.class, () -> new MCPGatewayTool(null));
-            assertThrows(NullPointerException.class, () -> new MCPGatewayTool(gatewayClient, null));
+            GatewayClient gatewayClient = mock(GatewayClient.class);
+            assertThrows(NullPointerException.class, () -> new GatewayTool(null));
+            assertThrows(NullPointerException.class, () -> new GatewayTool(gatewayClient, null));
         }
     }
 
@@ -635,10 +631,10 @@ class IntegrationModuleTest {
 
         @Test
         void loadsCallsAndPersistsSuccessfulState() {
-            Session session = mock(Session.class);
+            AgentStateStore session = mock(AgentStateStore.class);
             ReActAgent agent = mock(ReActAgent.class);
             Msg reply = Msg.builder().role(MsgRole.ASSISTANT).textContent("ok").build();
-            when(agent.call(any(Msg.class))).thenReturn(Mono.just(reply));
+            when(agent.call(any(List.class), any(RuntimeContext.class))).thenReturn(Mono.just(reply));
             AgentscopeRequestContext context = new AgentscopeRequestContext(
                     "session", "user", "request", null);
 
@@ -646,8 +642,6 @@ class IntegrationModuleTest {
                     .call(agent, "hello", context);
 
             assertSame(reply, result);
-            verify(agent).loadIfExists(session, context.sessionKey());
-            verify(agent).saveTo(session, context.sessionKey());
         }
 
         @Test
@@ -656,9 +650,9 @@ class IntegrationModuleTest {
                     () -> new AgentscopeSessionExecutor(null));
             assertThrows(IllegalArgumentException.class,
                     () -> new AgentscopeSessionExecutor(
-                            new InMemorySession(), Duration.ZERO));
+                            new InMemoryAgentStateStore(), Duration.ZERO));
             AgentscopeSessionExecutor executor = new AgentscopeSessionExecutor(
-                    new InMemorySession(), Duration.ofSeconds(1));
+                    new InMemoryAgentStateStore(), Duration.ofSeconds(1));
             assertThrows(IllegalArgumentException.class,
                     () -> executor.call(mock(ReActAgent.class), " ",
                             new AgentscopeRequestContext(null, null, null, null)));

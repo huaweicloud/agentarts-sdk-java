@@ -47,11 +47,13 @@ public class DeployOperation {
      * @param description agent description (overrides config)
      * @param skipBuild   skip Docker build/push, use the configured artifact URL directly
      * @param skipSsl     skip SSL verification
+     * @param platform    Docker build platform (e.g. "linux/amd64", "linux/arm64"); defaults to "linux/arm64"
      * @return {@code true} on success
      */
     public static boolean deployProject(String agentName, String mode, String imageTag,
                                          Integer localPort, String swrOrg, String swrRepo,
-                                         String description, boolean skipBuild, boolean skipSsl) throws Exception {
+                                         String description, boolean skipBuild, boolean skipSsl,
+                                         String platform) throws Exception {
         boolean local = "local".equals(mode);
         if (!local && !"cloud".equals(mode)) {
             throw new IllegalArgumentException("mode must be 'cloud' or 'local', got: " + mode);
@@ -62,6 +64,10 @@ public class DeployOperation {
         }
         if (localPort != null && (localPort < 1 || localPort > 65535)) {
             throw new IllegalArgumentException("local port must be between 1 and 65535");
+        }
+        String actualPlatform = (platform != null && !platform.isBlank()) ? platform : "linux/arm64";
+        if (!actualPlatform.matches("^[a-zA-Z0-9][a-zA-Z0-9._-]*/[a-zA-Z0-9][a-zA-Z0-9._-]*$")) {
+            throw new IllegalArgumentException("platform must be in os/arch format (e.g. linux/amd64, linux/arm64)");
         }
         boolean verifySsl = !skipSsl;
 
@@ -114,7 +120,7 @@ public class DeployOperation {
         if (local) {
             String localImage = actualAgentName + ":" + tag;
             System.out.println("Step 1/2: Building Docker image " + localImage);
-            if (!buildProjectAndImage(actualAgentName, tag, projectDir, region)) {
+            if (!buildProjectAndImage(actualAgentName, tag, projectDir, region, actualPlatform)) {
                 return false;
             }
             int port = localPort != null ? localPort : servicePort;
@@ -154,7 +160,7 @@ public class DeployOperation {
 
             String localImage = actualAgentName + ":" + tag;
             System.out.println("Step 1/5: Building Docker image " + localImage);
-            if (!buildProjectAndImage(actualAgentName, tag, projectDir, region)) {
+            if (!buildProjectAndImage(actualAgentName, tag, projectDir, region, actualPlatform)) {
                 return false;
             }
 
@@ -285,6 +291,7 @@ public class DeployOperation {
                 .withName(agentName)
                 .withDescription(desc)
                 .withArtifactSource(artifactSource)
+                .withStorageConfig(resolveStorageConfig(runtimeCfg.getStorageConfig()))
                 .withInvokeConfig(invokeConfig)
                 .withNetworkConfig(runtimeCfg.getNetworkConfig())
                 .withObservability(runtimeCfg.getObservability())
@@ -324,6 +331,46 @@ public class DeployOperation {
         return req;
     }
 
+    /**
+     * Resolve the API payload for {@code storage_config}, mirroring the Python
+     * SDK's {@code create_agentarts_runtime} (deploy.py:115-129).
+     *
+     * <p>The config YAML holds {@code sfs_turbo} as a single object, but the
+     * API expects an array. A storage_config without {@code sfs_turbo_id} is
+     * treated as unset (nothing is sent); when {@code sfs_turbo_id} is set,
+     * {@code mount_path} is required. Returns {@code null} when SFS Turbo is
+     * not configured so the field is omitted from the request.</p>
+     */
+    static Map<String, Object> resolveStorageConfig(Map<String, Object> storageConfig) {
+        if (storageConfig == null || storageConfig.isEmpty()) {
+            return null;
+        }
+        Object sfsTurboObj = storageConfig.get("sfs_turbo");
+        if (!(sfsTurboObj instanceof Map<?, ?> sfsTurbo)) {
+            return null;
+        }
+        Object sfsTurboId = sfsTurbo.get("sfs_turbo_id");
+        if (sfsTurboId == null || String.valueOf(sfsTurboId).isBlank()) {
+            return null;
+        }
+        Object mountPath = sfsTurbo.get("mount_path");
+        if (mountPath == null || String.valueOf(mountPath).isBlank()) {
+            throw new IllegalArgumentException(
+                    "storage_config.sfs_turbo.mount_path is required when sfs_turbo_id is set");
+        }
+        // API expects sfs_turbo as an array; null fields are dropped
+        // (matches the Python SDK's exclude_none behavior).
+        Map<String, Object> item = new LinkedHashMap<>();
+        sfsTurbo.forEach((k, v) -> {
+            if (v != null) {
+                item.put(String.valueOf(k), v);
+            }
+        });
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("sfs_turbo", List.of(item));
+        return result;
+    }
+
     static String resolveAgentKey(AgentArtsConfigList configList, String agentName) {
         if (agentName != null && !agentName.isBlank()) {
             if (configList.getAgent(agentName) != null) {
@@ -351,20 +398,17 @@ public class DeployOperation {
      * The generated Dockerfile expects {@code target/<name>.jar}, so the project
      * must be packaged first.
      */
-    private static boolean buildProjectAndImage(String agentName, String tag, Path projectDir, String region) {
+    private static boolean buildProjectAndImage(String agentName, String tag, Path projectDir,
+                                                 String region, String platform) {
         // 1. Maven package (produces the fat jar via the shade plugin).
         if (Files.isRegularFile(projectDir.resolve("pom.xml"))) {
-            // On Windows a bare `mvn` (no extension) is a bash shell script that
-            // CreateProcess cannot execute (error 193); `mvn.cmd` is the native
-            // entry point. On POSIX `mvn.cmd` does not exist, so fall back to `mvn`.
-            String mvn = findOnPath("mvn.cmd");
+            // Choose Maven executable based on OS: mvn.cmd on Windows, mvn on other systems
+            String osName = System.getProperty("os.name", "").toLowerCase();
+            String mvnCommand = osName.contains("windows") ? "mvn.cmd" : "mvn";
+            String mvn = findOnPath(mvnCommand);
             if (mvn == null) {
-                mvn = findOnPath("mvn");
-            }
-            if (mvn == null) {
-                // Best-effort: assume mvn is invokable by name on PATH (PATHEXT
-                // resolves `mvn` -> `mvn.cmd` on Windows when no full path is given).
-                mvn = "mvn";
+                // Best-effort: assume mvn is invokable by name on PATH
+                mvn = mvnCommand;
             }
             System.out.println("  Building project artifact (mvn package)...");
             int code = runProcess(Arrays.asList(mvn, "-q", "-B", "-DskipTests", "package"),
@@ -379,9 +423,9 @@ public class DeployOperation {
         // LIST (with an attestation manifest) which SWR cannot parse — pushes fail
         // with "Invalid image, fail to parse 'manifest.json'". A single-platform
         // build with --provenance=false yields a classic Docker v2 schema-2
-        // manifest that SWR accepts. linux/amd64 matches the runtime target.
+        // manifest that SWR accepts.
         int code = runProcess(Arrays.asList("docker", "build", "--provenance=false",
-                "--platform=linux/amd64", "-t", agentName + ":" + tag, "."),
+                "--platform=" + platform, "-t", agentName + ":" + tag, "."),
                 projectDir.toFile(), null, "docker build");
         if (code != 0) {
             System.err.println("  docker build failed (exit " + code + ")");

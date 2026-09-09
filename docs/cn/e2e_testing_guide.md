@@ -87,7 +87,7 @@ Java 套件覆盖：
 - Runtime 控制面、数据面、本地服务、SSE、WebSocket、会话与文件传输；
 - Memory 空间、消息、记忆、同步与真正非阻塞的 cold Reactor API，以及 `AsyncMemorySession`；
 - Identity Workload Identity、API Key/OAuth2/STS provider 和 `@Require*` 注解；
-- MCP Gateway/Target CRUD、IAM agency 创建复用、策略绑定和分页；
+- Gateway/Target CRUD、IAM agency 创建复用、策略绑定和分页；
 - Code Interpreter 控制面与沙箱会话；
 - CLI init/config/dev/deploy/destroy/invoke/runtime/memory/gateway 的命令树、别名、help 和本地/云路径；
 - AgentScope 1.0 Session 适配、每会话串行化、超时、状态持久化与 Runtime host。

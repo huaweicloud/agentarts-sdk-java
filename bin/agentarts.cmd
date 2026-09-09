@@ -12,7 +12,8 @@ set "JAR="
 
 if defined AGENTARTS_CLI_JAR if exist "%AGENTARTS_CLI_JAR%" set "JAR=%AGENTARTS_CLI_JAR%"
 if not defined JAR if exist "%SCRIPT_DIR%agentarts-toolkit-cli.jar" set "JAR=%SCRIPT_DIR%agentarts-toolkit-cli.jar"
-if not defined JAR if exist "%SCRIPT_DIR%..\agentarts-toolkit-cli\target\agentarts-toolkit-cli-0.1.0-SNAPSHOT-standalone.jar" set "JAR=%SCRIPT_DIR%..\agentarts-toolkit-cli\target\agentarts-toolkit-cli-0.1.0-SNAPSHOT-standalone.jar"
+if not defined JAR for %%F in ("%SCRIPT_DIR%..\lib\agentarts-toolkit-cli-*-standalone.jar") do if exist "%%F" set "JAR=%%F"
+if not defined JAR for %%F in ("%SCRIPT_DIR%..\agentarts-toolkit-cli\target\agentarts-toolkit-cli-*-standalone.jar") do if exist "%%F" set "JAR=%%F"
 
 if not defined JAR (
     echo agentarts: CLI jar not found. >&2

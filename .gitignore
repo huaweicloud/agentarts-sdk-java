@@ -46,5 +46,10 @@ Thumbs.db
 .env.*
 !.env.example
 
-# Local E2E credentials (never commit)
+
 agentarts-e2e.env
+# AI assistant local data
+.ai
+AGENTS.md
+codespec/
+.cac/

@@ -1,15 +1,14 @@
 package com.huaweicloud.agentarts.examples;
 
 import com.huaweicloud.agentarts.examples.converter.OpenAiEventConverter;
-import com.huaweicloud.agentarts.examples.sandbox.AgentArtsBasedSandboxFilesystemSpec;
+import com.huaweicloud.agentarts.sdk.integration.agentscope.sandbox.AgentArtsBasedSandboxFilesystemSpec;
 import com.huaweicloud.agentarts.sdk.integration.agentscope.runtime.AgentscopeRuntimeHost;
-import com.huaweicloud.agentarts.sdk.memory.MemoryClient;
 import com.huaweicloud.agentarts.sdk.runtime.AgentArtsRuntimeApp;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.model.OpenAIChatModel;
 import io.agentscope.core.skill.repository.ClasspathSkillRepository;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.apache.commons.lang3.StringUtils;
 
@@ -19,8 +18,6 @@ import java.util.List;
 
 public class SandboxIntegrationExample {
     private static final AgentArtsRuntimeApp APP = new AgentArtsRuntimeApp();
-
-    private static final MemoryClient MEMORY_CLIENT = new MemoryClient(System.getenv("HUAWEICLOUD_SDK_REGION"), System.getenv("MEMORY_API_KEY"));
 
     private static final HarnessAgent AGENT = buildAgent();
 
@@ -39,7 +36,11 @@ public class SandboxIntegrationExample {
 
     public static HarnessAgent buildAgent() {
         AgentArtsBasedSandboxFilesystemSpec filesystemSpec = new AgentArtsBasedSandboxFilesystemSpec(
-                System.getenv("AGENTRUN_BASE_URL"), System.getenv("AGENT_RUN_API_KEY"));
+                System.getenv("AGENTRUN_BASE_URL"),
+                System.getenv("AGENT_RUN_API_KEY"),
+                System.getenv("SANDBOX_NAME"),
+                "/workspace"
+        );
         JsonFileAgentStateStore stateStore = new JsonFileAgentStateStore(
                 Path.of("/mem") // 状态将保存在应用主机的这个目录下
         );
@@ -63,7 +64,7 @@ public class SandboxIntegrationExample {
         new AgentscopeRuntimeHost(APP, (payload, ctx) -> {
             OpenAiEventConverter converter = new OpenAiEventConverter("GLM-5.1");
             String message = (String) payload.getOrDefault("message", "");
-            return AGENT.streamEvents(List.of(Msg.builder().textContent(message).build()), ctx)
+            return AGENT.streamEvents(List.of(Msg.builder().textContent(message).build()), ctx.runtimeContext())
                     .map(event -> {
                         String result = converter.convertEventToOpenAiChunk(event);
                         return result == null ? "" : result;

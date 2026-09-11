@@ -300,11 +300,17 @@ public final class Constants {
     }
 
     private static String getEnv(String name) {
-        return System.getenv(name);
+        String value = System.getenv(name);
+        if (JsonUtils.isNotBlank(value)) {
+            return value;
+        }
+        // System-property fallback so tests and embedded launchers can inject
+        // endpoints without mutating the process environment.
+        return System.getProperty(name);
     }
 
     private static String getEnvOrDefault(String name, String defaultValue) {
-        String value = System.getenv(name);
+        String value = getEnv(name);
         return JsonUtils.isNotBlank(value) ? value : defaultValue;
     }
 }

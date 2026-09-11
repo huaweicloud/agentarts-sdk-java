@@ -6,12 +6,16 @@ import java.util.List;
 
 /**
  * Response for listing code interpreters.
+ *
+ * <p>Each item is a {@link CodeInterpreterListItem} — the list API returns a
+ * reduced field set and does not include create-only fields such as
+ * {@code auth_type} or {@code network_config}.</p>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CodeInterpreterListResponse {
-    @JsonProperty("items") private List<CodeInterpreterInfo> items;
+    @JsonProperty("items") private List<CodeInterpreterListItem> items;
     @JsonProperty("total_count") private int totalCount;
 
-    public List<CodeInterpreterInfo> getItems() { return items; }
+    public List<CodeInterpreterListItem> getItems() { return items; }
     public int getTotalCount() { return totalCount; }
 }

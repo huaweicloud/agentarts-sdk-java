@@ -112,21 +112,26 @@ class RuntimeClientTest {
             });
             server.start();
 
-            String endpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+            String base = "http://127.0.0.1:" + server.getAddress().getPort();
             try (RuntimeClient client = new RuntimeClient("cn-southwest-2")) {
+                // The data-plane base URL is set via setDataPlaneEndpoint; the
+                // per-call endpoint is an endpoint NAME carried as ?endpoint=xxx.
+                client.setDataPlaneEndpoint(base);
                 Map<String, Object> result = client.invokeAgent(
-                        "agent/name", "session", "{}", "per-call-token", endpoint,
+                        "agent/name", "session", "{}", "per-call-token", "named-endpoint",
                         2, "user", null);
                 assertNotNull(result);
                 assertEquals("Bearer per-call-token", authorization.get());
                 assertEquals("/runtimes/agent%2Fname/invocations", rawPath.get());
+                assertTrue(rawQuery.get().contains("endpoint=named-endpoint"));
 
                 client.downloadFiles(
                         "agent/name", "session", "/home/user/a b.txt", true,
-                        "download-token", endpoint, null, 2);
+                        "download-token", "named-endpoint", null, 2);
                 assertEquals("Bearer download-token", authorization.get());
                 assertTrue(rawQuery.get().contains("path=%2Fhome%2Fuser%2Fa%20b.txt"));
                 assertTrue(rawQuery.get().contains("recursive=true"));
+                assertTrue(rawQuery.get().contains("endpoint=named-endpoint"));
             } finally {
                 server.stop(0);
             }
@@ -275,7 +280,7 @@ class RuntimeClientTest {
                     .data(JsonUtils.MAPPER.readTree("{\"status\":\"uploaded\"}"))
                     .build();
             when(dataClient.request(eq("POST"),
-                    eq("https://runtime.example/runtimes/agent/upload-files"),
+                    eq("/runtimes/agent/upload-files"),
                     anyMap(), any(), anyMap(), eq(30.0)))
                     .thenReturn(Mono.just(response));
 
@@ -289,7 +294,7 @@ class RuntimeClientTest {
                         "agent", "session",
                         List.of(Map.of("local_file", local.toString())),
                         "/home/user/", null, null, null,
-                        "token", "https://runtime.example", null, 30);
+                        "token", null, null, 30);
                 assertNotNull(result);
             }
 
@@ -297,7 +302,7 @@ class RuntimeClientTest {
             ArgumentCaptor<Map<String, List<String>>> params = ArgumentCaptor.forClass(Map.class);
             ArgumentCaptor<Object> body = ArgumentCaptor.forClass(Object.class);
             verify(dataClient).request(eq("POST"),
-                    eq("https://runtime.example/runtimes/agent/upload-files"),
+                    eq("/runtimes/agent/upload-files"),
                     anyMap(), body.capture(), params.capture(), eq(30.0));
             assertArrayEquals("hello local".getBytes(StandardCharsets.UTF_8),
                     (byte[]) body.getValue());
@@ -332,15 +337,15 @@ class RuntimeClientTest {
                     .lineStream(Flux.just("{\"stdout\":\"one\"}", "{\"exit_code\":0}"))
                     .closeAction(() -> closed.set(true))
                     .build();
-            when(dataClient.request(eq("POST"), eq("https://runtime.example/runtimes/agent/commands"),
-                    anyMap(), any(), isNull(), eq(12.0))).thenReturn(Mono.just(response));
+            when(dataClient.request(eq("POST"), eq("/runtimes/agent/commands"),
+                    anyMap(), any(), anyMap(), eq(12.0))).thenReturn(Mono.just(response));
 
             try (RuntimeClient client = new RuntimeClient(
                     "test-region", true, SignMode.SDK_HMAC_SHA256,
                     controlClient, dataClient);
                  RequestResult result = client.execCommandRaw(
                          "agent", "session", List.of("echo", "one"), true,
-                         "token", "https://runtime.example", "user", 12)) {
+                         "token", "named-endpoint", "user", 12)) {
                 assertEquals(List.of("{\"stdout\":\"one\"}", "{\"exit_code\":0}"),
                         result.iterLines().collectList().block());
             }
@@ -349,11 +354,14 @@ class RuntimeClientTest {
             @SuppressWarnings("unchecked")
             ArgumentCaptor<Map<String, String>> headers = ArgumentCaptor.forClass(Map.class);
             ArgumentCaptor<Object> body = ArgumentCaptor.forClass(Object.class);
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, List<String>>> params = ArgumentCaptor.forClass(Map.class);
             verify(dataClient).request(eq("POST"),
-                    eq("https://runtime.example/runtimes/agent/commands"),
-                    headers.capture(), body.capture(), isNull(), eq(12.0));
+                    eq("/runtimes/agent/commands"),
+                    headers.capture(), body.capture(), params.capture(), eq(12.0));
             assertEquals("chunked", headers.getValue().get("Command-Type"));
             assertEquals("Bearer token", headers.getValue().get("Authorization"));
+            assertEquals(List.of("named-endpoint"), params.getValue().get("endpoint"));
             assertEquals(List.of("echo", "one"),
                     ((com.huaweicloud.agentarts.sdk.service.runtime.model.ExecCommandRequest)
                             body.getValue()).getCommand());

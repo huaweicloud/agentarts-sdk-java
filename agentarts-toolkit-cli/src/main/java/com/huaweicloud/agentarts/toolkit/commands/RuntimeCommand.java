@@ -89,7 +89,7 @@ public class RuntimeCommand implements Runnable {
                 CliSupport.fail("timeout must be between 1 and 300 seconds");
             }
             try (RuntimeClient client = RuntimeResolver.resolve(
-                    agentName, region, !skipSsl, resolvedBearerToken, endpoint)) {
+                    agentName, region, !skipSsl, resolvedBearerToken)) {
                 if (JsonUtils.isNotBlank(resolvedBearerToken)) {
                     client.setAuthToken(resolvedBearerToken);
                 }
@@ -171,7 +171,7 @@ public class RuntimeCommand implements Runnable {
                 fileMaps.add(Map.<String, Object>of("local_file", f));
             }
             try (RuntimeClient client = RuntimeResolver.resolve(
-                    agentName, region, !skipSsl, resolvedBearerToken, endpoint)) {
+                    agentName, region, !skipSsl, resolvedBearerToken)) {
                 if (JsonUtils.isNotBlank(resolvedBearerToken)) {
                     client.setAuthToken(resolvedBearerToken);
                 }
@@ -243,7 +243,7 @@ public class RuntimeCommand implements Runnable {
                 CliSupport.fail("Output file already exists; use --force to replace it: " + out);
             }
             try (RuntimeClient client = RuntimeResolver.resolve(
-                    agentName, region, !skipSsl, resolvedBearerToken, endpoint)) {
+                    agentName, region, !skipSsl, resolvedBearerToken)) {
                 if (JsonUtils.isNotBlank(resolvedBearerToken)) {
                     client.setAuthToken(resolvedBearerToken);
                 }
@@ -323,7 +323,7 @@ public class RuntimeCommand implements Runnable {
         public void run() {
             String resolvedBearerToken = CliSupport.resolveBearerToken(bearerToken);
             try (RuntimeClient client = RuntimeResolver.resolve(
-                    agentName, region, !skipSsl, resolvedBearerToken, endpoint)) {
+                    agentName, region, !skipSsl, resolvedBearerToken)) {
                 if (JsonUtils.isNotBlank(resolvedBearerToken)) {
                     client.setAuthToken(resolvedBearerToken);
                 }
@@ -365,7 +365,7 @@ public class RuntimeCommand implements Runnable {
         public void run() {
             String resolvedBearerToken = CliSupport.resolveBearerToken(bearerToken);
             try (RuntimeClient client = RuntimeResolver.resolve(
-                    agentName, region, !skipSsl, resolvedBearerToken, endpoint)) {
+                    agentName, region, !skipSsl, resolvedBearerToken)) {
                 if (JsonUtils.isNotBlank(resolvedBearerToken)) {
                     client.setAuthToken(resolvedBearerToken);
                 }

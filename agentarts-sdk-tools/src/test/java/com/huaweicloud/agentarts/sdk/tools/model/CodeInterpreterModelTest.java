@@ -287,6 +287,19 @@ class CodeInterpreterModelTest {
         }
 
         @Test
+        void itemsAreListItemNotFullInfo() throws Exception {
+            // The list API returns a reduced field set; items must not expose
+            // create-only fields like authType / networkConfig.
+            String json = "{\"items\":[{\"id\":\"ci-1\",\"name\":\"interp1\","
+                    + "\"auth_type\":\"API_KEY\",\"network_config\":{}}],"
+                    + "\"total_count\":1}";
+            CodeInterpreterListResponse resp = JsonUtils.MAPPER.readValue(json, CodeInterpreterListResponse.class);
+            assertEquals(1, resp.getItems().size());
+            assertEquals(CodeInterpreterListItem.class, resp.getItems().get(0).getClass());
+            assertNotEquals(CodeInterpreterInfo.class, resp.getItems().get(0).getClass());
+        }
+
+        @Test
         void emptyList() throws Exception {
             String json = "{\"items\":[],\"total_count\":0}";
             CodeInterpreterListResponse resp = JsonUtils.MAPPER.readValue(json, CodeInterpreterListResponse.class);

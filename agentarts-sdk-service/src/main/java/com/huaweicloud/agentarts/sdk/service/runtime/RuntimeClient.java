@@ -334,7 +334,7 @@ public class RuntimeClient implements AutoCloseable {
 
         Map<String, String> headers = buildDataHeaders(sessionId, bearerToken, userId);
         RequestResult result = getDataClient().request(
-                "POST", dataUrl(path, endpoint), headers, payload, null, (double) timeout).block();
+                "POST", path, headers, payload, endpointQuery(endpoint), (double) timeout).block();
         if (result == null) {
             throw new APIException(0, "invoke_agent", "null response");
         }
@@ -378,9 +378,9 @@ public class RuntimeClient implements AutoCloseable {
             headers.put("Command-Type", "chunked");
         }
         RequestResult result = getDataClient().request(
-                "POST", dataUrl("/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
-                        + "/commands", endpoint),
-                headers, req, null, (double) timeout).block();
+                "POST", "/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
+                        + "/commands",
+                headers, req, endpointQuery(endpoint), (double) timeout).block();
         if (result == null) {
             throw new APIException(0, "exec_command", "null response");
         }
@@ -417,6 +417,7 @@ public class RuntimeClient implements AutoCloseable {
         if (fileUserId != null) params.put("user_id", List.of(String.valueOf(fileUserId)));
         if (fileGroupId != null) params.put("group_id", List.of(String.valueOf(fileGroupId)));
         if (fileMode != null) params.put("file_mode", List.of(fileMode));
+        if (JsonUtils.isNotBlank(endpoint)) params.put("endpoint", List.of(endpoint));
 
         final String uploadUrl = "/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
                 + "/upload-files";
@@ -431,7 +432,7 @@ public class RuntimeClient implements AutoCloseable {
             params.put("path", List.of(fileRemote));
             headers.put("Content-Type", "application/octet-stream");
             result = getDataClient().request(
-                    "POST", dataUrl(uploadUrl, endpoint), headers, spec.content, params, (double) timeout).block();
+                    "POST", uploadUrl, headers, spec.content, params, (double) timeout).block();
         } else {
             // Multiple files: multipart/form-data, path = remote DIRECTORY.
             params.put("path", List.of(path));
@@ -466,7 +467,7 @@ public class RuntimeClient implements AutoCloseable {
             }
             headers.put("Content-Type", "multipart/form-data; boundary=" + boundary);
             result = getDataClient().request(
-                    "POST", dataUrl(uploadUrl, endpoint), headers, out.toByteArray(), params,
+                    "POST", uploadUrl, headers, out.toByteArray(), params,
                     (double) timeout).block();
         }
         return check(result, "upload_files");
@@ -592,9 +593,10 @@ public class RuntimeClient implements AutoCloseable {
         Map<String, List<String>> params = new LinkedHashMap<>();
         params.put("path", List.of(path));
         if (recursive) params.put("recursive", List.of("true"));
+        if (JsonUtils.isNotBlank(endpoint)) params.put("endpoint", List.of(endpoint));
         return getDataClient().requestBinaryStream(
-                "GET", dataUrl("/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
-                        + "/download-files", endpoint),
+                "GET", "/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
+                        + "/download-files",
                 headers, null, params, (double) timeout).block();
     }
 
@@ -611,9 +613,9 @@ public class RuntimeClient implements AutoCloseable {
                                              String endpoint, String userId, int timeout) {
         Map<String, String> headers = buildDataHeaders(null, bearerToken, userId);
         RequestResult result = getDataClient().request(
-                "POST", dataUrl("/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
-                        + "/sessions-start", endpoint),
-                headers, Map.of(), null, (double) timeout).block();
+                "POST", "/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
+                        + "/sessions-start",
+                headers, Map.of(), endpointQuery(endpoint), (double) timeout).block();
         return check(result, "start_session");
     }
 
@@ -630,9 +632,9 @@ public class RuntimeClient implements AutoCloseable {
 
         Map<String, String> headers = buildDataHeaders(sessionId, bearerToken, userId);
         RequestResult result = getDataClient().request(
-                "POST", dataUrl("/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
-                        + "/sessions-stop", endpoint),
-                headers, req, null, (double) timeout).block();
+                "POST", "/runtimes/" + UrlUtils.encodePathSegment(agentName, "agentName")
+                        + "/sessions-stop",
+                headers, req, endpointQuery(endpoint), (double) timeout).block();
         return check(result, "stop_session");
     }
 
@@ -658,18 +660,19 @@ public class RuntimeClient implements AutoCloseable {
         return headers;
     }
 
-    private String dataUrl(String path, String endpoint) {
+    /**
+     * Build the query-param map carrying the endpoint name, matching the Python
+     * SDK: the data-plane endpoint name travels as {@code ?endpoint=xxx} on the
+     * request URL, not as a base-URL override.
+     *
+     * @param endpoint endpoint name, or null/blank to omit the param
+     * @return query params map, or {@code null} when endpoint is absent
+     */
+    private static Map<String, List<String>> endpointQuery(String endpoint) {
         if (JsonUtils.isBlank(endpoint)) {
-            return path;
+            return null;
         }
-        String base = Constants.ensureHttps(endpoint);
-        if (base.endsWith("/") && path.startsWith("/")) {
-            return base + path.substring(1);
-        }
-        if (!base.endsWith("/") && !path.startsWith("/")) {
-            return base + "/" + path;
-        }
-        return base + path;
+        return Map.of("endpoint", List.of(endpoint));
     }
 
     /**

@@ -9,14 +9,7 @@ import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * V11-HMAC-SHA256 request signer for AgentArts self-developed endpoints.
@@ -115,7 +108,7 @@ public class V11Signer {
         List<String> signedHeaders = getSignedHeaders(headers);
 
         // 3. Build canonical request
-        String canonicalRequest = buildCanonicalRequest(method, path, queryParams, headers, signedHeaders);
+        String canonicalRequest = buildCanonicalRequest(method, path, new HashMap<>(), headers, signedHeaders);
 
         // 4. Build string to sign
         String credentialScope = buildCredentialScope(timestamp);
@@ -260,13 +253,13 @@ public class V11Signer {
             if (values == null || values.isEmpty()) {
                 pairs.add(encodedKey + "=");
             } else if (values.size() == 1) {
-                pairs.add(encodedKey + "=" + urlEncode(values.get(0)));
+                pairs.add(encodedKey + "=" + urlEncodeQueryValue(values.get(0)));
             } else {
                 // Sort list values and produce multiple key=value pairs
                 List<String> sortedValues = new ArrayList<>(values);
                 Collections.sort(sortedValues);
                 for (String value : sortedValues) {
-                    pairs.add(encodedKey + "=" + urlEncode(value));
+                    pairs.add(encodedKey + "=" + urlEncodeQueryValue(value));
                 }
             }
         }
@@ -491,6 +484,20 @@ public class V11Signer {
         // Fix: URLEncoder encodes "*" as "*", but RFC 3986 requires "%2A"
         encoded = encoded.replace("*", "%2A");
         return encoded;
+    }
+
+    /**
+     * URL-encode a query value, keeping "~" and "/" as safe characters.
+     * This matches Python's {@code urllib.parse.quote(s, safe="~/")}: the
+     * data-plane gateway decodes the wire query and treats "/" as safe when
+     * re-canonicalising, so the signature must keep slashes unencoded (e.g.
+     * an upload's {@code path} value like {@code /home/user/test.txt}).
+     */
+    static String urlEncodeQueryValue(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        return urlEncode(value).replace("%2F", "/");
     }
 
     // ========================

@@ -53,6 +53,20 @@ class CliE2ETest {
             System.setErr(originalErr);
         }
 
+        /**
+         * Point the runtime data-plane base URL at a local HttpServer via the
+         * {@code AGENTARTS_RUNTIME_DATA_ENDPOINT} system property (the CLI's
+         * {@code --endpoint} option stays a query-parameter name, matching the
+         * Python SDK). Pass {@code null} to clear.
+         */
+        private static void setEnv(String key, String value) {
+            if (value == null) {
+                System.clearProperty(key);
+            } else {
+                System.setProperty(key, value);
+            }
+        }
+
         @Test
         void localInvokeThreadsAllOptionsAndPrintsJson() throws Exception {
             AtomicReference<String> path = new AtomicReference<>();
@@ -145,10 +159,10 @@ class CliE2ETest {
             server.start();
 
             try {
-                String endpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+                setEnv("AGENTARTS_RUNTIME_DATA_ENDPOINT", "http://127.0.0.1:" + server.getAddress().getPort());
                 int exit = CliSupport.withCleanExit(new CommandLine(new AgentArtsCli())).execute(
                         "runtime", "exec-command", "printf 'hello world'",
-                        "--agent", "unit-agent", "--endpoint", endpoint,
+                        "--agent", "unit-agent", "--endpoint", "named-endpoint",
                         "--bearer-token", "unit-token");
                 assertEquals(0, exit);
                 JsonNode body = new com.fasterxml.jackson.databind.ObjectMapper()
@@ -157,6 +171,7 @@ class CliE2ETest {
                 assertEquals("hello world", body.path("command").get(1).asText());
             } finally {
                 server.stop(0);
+                setEnv("AGENTARTS_RUNTIME_DATA_ENDPOINT", null);
             }
         }
 
@@ -179,10 +194,10 @@ class CliE2ETest {
             server.start();
 
             try {
-                String endpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+                setEnv("AGENTARTS_RUNTIME_DATA_ENDPOINT", "http://127.0.0.1:" + server.getAddress().getPort());
                 int exit = CliSupport.withCleanExit(new CommandLine(new AgentArtsCli())).execute(
                         "runtime", "exec-command", "echo one",
-                        "--agent", "unit-agent", "--endpoint", endpoint,
+                        "--agent", "unit-agent", "--endpoint", "named-endpoint",
                         "--bearer-token", "unit-token", "--chunked", "--timeout", "5");
                 assertEquals(0, exit);
                 assertEquals("chunked", commandType.get());
@@ -194,6 +209,7 @@ class CliE2ETest {
                 assertTrue(text.contains("{\"exit_code\":0}"));
             } finally {
                 server.stop(0);
+                setEnv("AGENTARTS_RUNTIME_DATA_ENDPOINT", null);
             }
         }
 
@@ -211,13 +227,13 @@ class CliE2ETest {
             server.start();
 
             Path outputPath = tempDir.resolve("nested/download.bin");
-            String endpoint = "http://127.0.0.1:" + server.getAddress().getPort();
+            setEnv("AGENTARTS_RUNTIME_DATA_ENDPOINT", "http://127.0.0.1:" + server.getAddress().getPort());
             CommandLine cli = CliSupport.withCleanExit(new CommandLine(new AgentArtsCli()));
             try {
                 int firstExit = cli.execute(
                         "runtime", "download-files", "--agent", "unit-agent",
                         "--session", "unit-session", "--path", "/remote/download.bin",
-                        "--output", outputPath.toString(), "--endpoint", endpoint,
+                        "--output", outputPath.toString(), "--endpoint", "named-endpoint",
                         "--bearer-token", "unit-token");
                 assertEquals(0, firstExit);
                 assertArrayEquals(response, Files.readAllBytes(outputPath));
@@ -226,18 +242,19 @@ class CliE2ETest {
                 assertNotEquals(0, cli.execute(
                         "runtime", "download-files", "--agent", "unit-agent",
                         "--session", "unit-session", "--path", "/remote/download.bin",
-                        "--output", outputPath.toString(), "--endpoint", endpoint,
+                        "--output", outputPath.toString(), "--endpoint", "named-endpoint",
                         "--bearer-token", "unit-token"));
                 assertArrayEquals(new byte[] {42}, Files.readAllBytes(outputPath));
 
                 assertEquals(0, cli.execute(
                         "runtime", "download-files", "--agent", "unit-agent",
                         "--session", "unit-session", "--path", "/remote/download.bin",
-                        "--output", outputPath.toString(), "--endpoint", endpoint,
+                        "--output", outputPath.toString(), "--endpoint", "named-endpoint",
                         "--bearer-token", "unit-token", "--force"));
                 assertArrayEquals(response, Files.readAllBytes(outputPath));
             } finally {
                 server.stop(0);
+                setEnv("AGENTARTS_RUNTIME_DATA_ENDPOINT", null);
             }
         }
 

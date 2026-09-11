@@ -110,6 +110,18 @@ class V11SignerTest {
         void shouldPreserveAlphanumeric() {
             assertEquals("abc123", V11Signer.urlEncode("abc123"));
         }
+
+        @Test
+        void shouldEncodeQueryValueKeepingSlash() {
+            // Python: urllib.parse.quote("/home/user/test.txt", safe="~/")
+            assertEquals("/home/user/test.txt", V11Signer.urlEncodeQueryValue("/home/user/test.txt"));
+        }
+
+        @Test
+        void shouldEncodeQueryValueEncodingSpaceButNotSlash() {
+            // Python: quote("a b/c", safe="~/") -> "a%20b/c"
+            assertEquals("a%20b/c", V11Signer.urlEncodeQueryValue("a b/c"));
+        }
     }
 
     // ========================
@@ -540,8 +552,11 @@ class V11SignerTest {
         }
 
         @Test
-        void fullSignatureMatchesPython_POST_v1_agents_withQuery() {
-            // Golden vector from Python: POST /v1/agents?limit=10&offset=0&tag=a&tag=b
+        void signatureIgnoresQueryParams() {
+            // Query params are excluded from the canonical request: the current
+            // signing scheme does not support signing query params, so the
+            // signature for POST /v1/agents?limit=10&offset=0&tag=a&tag=b
+            // equals the signature of the same request without any query.
             Map<String, String> headers = new java.util.LinkedHashMap<>();
             headers.put("host", "example.com");
             headers.put("x-sdk-date", GOLDEN_TS);
@@ -555,7 +570,28 @@ class V11SignerTest {
 
             String expected = "V11-HMAC-SHA256 Credential=MYTESTAK123456789/20250615/cn-southwest-2/apic, "
                     + "SignedHeaders=host;x-sdk-date, "
-                    + "Signature=915a68063debc8ebad479f2174e661c6623cd7a9568e9ccb20ce90c82b7bb8f8";
+                    + "Signature=823be3a8559b18fb01843a23a76989081ab4efa4ac4cc903c5f62bc7d536fe71";
+            assertEquals(expected, headers.get("Authorization"));
+        }
+
+        @Test
+        void signatureIgnoresQueryParamsForUploadPath() {
+            // An upload-files call whose query value is a remote path
+            // (/runtimes/{name}/upload-files?path=/home/user/pom.xml): query
+            // params are excluded from the canonical request, so the path value
+            // does not affect the signature.
+            Map<String, String> headers = new java.util.LinkedHashMap<>();
+            headers.put("host", "aigateway-mm2gin3dgq.cn-southwest-2.huaweicloud-agentarts.com");
+            headers.put("x-sdk-date", "20260910T000000Z");
+
+            Map<String, List<String>> qp = new java.util.LinkedHashMap<>();
+            qp.put("path", List.of("/home/user/pom.xml"));
+
+            goldenSigner.sign("POST", "/runtimes/myagent-lvokc/upload-files", qp, headers);
+
+            String expected = "V11-HMAC-SHA256 Credential=MYTESTAK123456789/20260910/cn-southwest-2/apic, "
+                    + "SignedHeaders=host;x-sdk-date, "
+                    + "Signature=e98a7232e8f794198462a9f76db7eb0837fe3b128d03d64e74cdc153c47c6182";
             assertEquals(expected, headers.get("Authorization"));
         }
     }

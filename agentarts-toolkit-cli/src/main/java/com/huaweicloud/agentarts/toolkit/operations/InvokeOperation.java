@@ -89,7 +89,7 @@ public class InvokeOperation {
         String actualSessionId = (sessionId != null && !sessionId.isBlank())
                 ? sessionId : UUID.randomUUID().toString();
         try (RuntimeClient client = RuntimeResolver.resolve(
-                resolvedAgentName, region, !skipSsl, bearerToken, endpoint);
+                resolvedAgentName, region, !skipSsl, bearerToken);
              RequestResult result = client.invokeAgentRaw(
                      resolvedAgentName, actualSessionId, payload, bearerToken,
                      endpoint, timeout, userId, customPath)) {

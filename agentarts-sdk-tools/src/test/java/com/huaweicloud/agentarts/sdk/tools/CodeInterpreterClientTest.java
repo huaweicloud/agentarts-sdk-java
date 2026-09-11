@@ -163,17 +163,26 @@ class CodeInterpreterClientTest {
                         Mono.just(success(content("{\"type\":\"text\",\"text\":\"hello\"}"))),
                         Mono.just(success(content("{\"type\":\"image\",\"data\":\"aGk=\"}"))),
                         Mono.just(success("{\"result\":{\"content\":["
-                                + "{\"uri\":\"file:///home/user/a.txt\",\"type\":\"resource\","
-                                + "\"resource\":{\"type\":\"text\",\"text\":\"a\"}},"
-                                + "{\"uri\":\"file:///home/user/b.bin\",\"type\":\"resource\","
-                                + "\"resource\":{\"type\":\"blob\",\"blob\":\"Yg==\"}}]}}")));
+                                + "{\"uri\":\"file:///home/user/d.txt\",\"type\":\"text\",\"text\":\"hello\"},"
+                                + "{\"uri\":\"file:///home/user/img.png\",\"type\":\"image\",\"data\":\"aGk=\"},"
+                                + "{\"uri\":\"file:///ignored.txt\",\"type\":\"resource\","
+                                + "\"resource\":{\"uri\":\"file:///home/user/a.txt\",\"type\":\"text\",\"text\":\"a\"}},"
+                                + "{\"uri\":\"file:///ignored.txt\",\"type\":\"resource\","
+                                + "\"resource\":{\"uri\":\"file:///home/user/b.txt\",\"type\":\"blob\",\"blob\":\"Yg==\"}},"
+                                + "{\"uri\":\"file:///ignored.bin\",\"type\":\"resource\","
+                                + "\"resource\":{\"uri\":\"file:///home/user/c.bin\",\"type\":\"blob\",\"blob\":\"/w==\"}}]}}")));
 
         assertEquals("hello", client.downloadFile("/home/user/a.txt"));
         assertArrayEquals("hi".getBytes(), (byte[]) client.downloadFile("/home/user/image.png"));
         Map<String, Object> files = client.downloadFiles(
-                List.of("/home/user/a.txt", "/home/user/b.bin"));
+                List.of("/home/user/d.txt", "/home/user/img.png",
+                        "/home/user/a.txt", "/home/user/b.txt", "/home/user/c.bin"));
+        assertEquals("hello", files.get("/home/user/d.txt"));
+        assertArrayEquals("hi".getBytes(), (byte[]) files.get("/home/user/img.png"));
         assertEquals("a", files.get("/home/user/a.txt"));
-        assertArrayEquals("b".getBytes(), (byte[]) files.get("/home/user/b.bin"));
+        // Blob decodes to a UTF-8 String when valid, otherwise raw bytes.
+        assertEquals("b", files.get("/home/user/b.txt"));
+        assertArrayEquals(new byte[]{(byte) 0xFF}, (byte[]) files.get("/home/user/c.bin"));
     }
 
     @Test

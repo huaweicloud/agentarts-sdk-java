@@ -343,14 +343,23 @@ public class BaseHttpClient implements AutoCloseable {
                         setHeaderReplacingCaseInsensitive(mergedHeaders, name, value));
             }
 
-            // Set Content-Type for body requests
-            if (body != null && !containsHeader(mergedHeaders, "Content-Type")) {
-                mergedHeaders.put("Content-Type", "application/json");
+            // Content-Type must not participate in request signing: save it,
+            // remove it from the headers passed to signRequest, then restore it
+            // after signing so the signed request never includes it.
+            String contentType = getHeader(mergedHeaders, "Content-Type", null);
+            if (contentType == null && body != null) {
+                contentType = "application/json";
             }
+            mergedHeaders.keySet().removeIf(key -> key.equalsIgnoreCase("Content-Type"));
 
             // Sign the request if AK/SK signing is enabled
             if (openAkSk) {
                 signRequest(method, fullUrl, mergedHeaders, body, queryParams);
+            }
+
+            // Restore Content-Type after signing
+            if (contentType != null) {
+                setHeaderReplacingCaseInsensitive(mergedHeaders, "Content-Type", contentType);
             }
 
             // Serialize body. byte[] is sent as raw bytes (for streaming uploads
@@ -878,10 +887,6 @@ public class BaseHttpClient implements AutoCloseable {
     private static String encodeQueryComponent(String value) {
         String encoded = URLEncoder.encode(value != null ? value : "", StandardCharsets.UTF_8);
         return encoded.replace("+", "%20").replace("%7E", "~").replace("*", "%2A");
-    }
-
-    private static boolean containsHeader(Map<String, String> headers, String name) {
-        return headers.keySet().stream().anyMatch(key -> key.equalsIgnoreCase(name));
     }
 
     private static String getHeader(Map<String, String> headers, String name, String defaultValue) {

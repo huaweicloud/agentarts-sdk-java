@@ -18,7 +18,7 @@ for candidate in \
     "${AGENTARTS_CLI_JAR:-}" \
     "$SCRIPT_DIR/agentarts-toolkit-cli.jar" \
     "$SCRIPT_DIR"/../lib/agentarts-toolkit-cli-*-standalone.jar \
-    "$SCRIPT_DIR/../agentarts-toolkit-cli/target/agentarts-toolkit-cli-*-standalone.jar"; do
+    "$SCRIPT_DIR"/../agentarts-toolkit-cli/target/agentarts-toolkit-cli-*-standalone.jar; do
     # The glob entries expand to the literal pattern when nothing matches;
     # skip those so only existing files are selected.
     if [ -n "$candidate" ] && [ -f "$candidate" ]; then

@@ -13,6 +13,10 @@ import com.huaweicloud.agentarts.sdk.tools.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -398,8 +402,18 @@ public class CodeInterpreterClient implements AutoCloseable {
     /**
      * Download multiple files using read_files operation.
      *
+     * <p>Each content item is processed by its {@code type} field, matching the
+     * Python SDK:
+     * <ul>
+     *   <li>{@code text}: key from the item's {@code uri}, value is the text</li>
+     *   <li>{@code image}: key from the item's {@code uri}, value is the decoded bytes</li>
+     *   <li>{@code resource}: key from the resource's {@code uri}; a {@code text}
+     *       resource yields its text, a {@code blob} resource is Base64-decoded and
+     *       returned as a UTF-8 String when possible, otherwise as raw bytes</li>
+     * </ul>
+     *
      * @param paths list of file paths
-     * @return map of path → content
+     * @return map of path → content (String for text, byte[] for binary)
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> downloadFiles(List<String> paths) {
@@ -408,19 +422,38 @@ public class CodeInterpreterClient implements AutoCloseable {
             resolvedPaths.add(validateDownloadPath(path));
         }
         Map<String, Object> result = invoke("read_files", Map.of("paths", resolvedPaths));
-        if (result == null) return Map.of();
+        if (result == null) {
+            throw new IllegalStateException("Could not read files: missing result");
+        }
+        Object resultObj = result.get("result");
+        if (!(resultObj instanceof Map)) {
+            throw new IllegalStateException("Could not read files: missing result");
+        }
+        Object contentList = ((Map<String, Object>) resultObj).get("content");
+        if (!(contentList instanceof List)) {
+            throw new IllegalStateException("Could not read files: missing content");
+        }
 
         Map<String, Object> files = new LinkedHashMap<>();
-        Object resultObj = result.get("result");
-        if (resultObj instanceof Map) {
-            Map<String, Object> resultMap = (Map<String, Object>) resultObj;
-            Object contentList = resultMap.get("content");
-            if (contentList instanceof List) {
-                List<Map<String, Object>> contents = (List<Map<String, Object>>) contentList;
-                for (Map<String, Object> item : contents) {
-                    String uri = (String) item.getOrDefault("uri", "");
-                    String filePath = uri.replace("file://", "");
-                    files.put(filePath, extractFileContent(item));
+        for (Map<String, Object> item : (List<Map<String, Object>>) contentList) {
+            String type = (String) item.get("type");
+            if ("text".equals(type)) {
+                String uri = (String) item.getOrDefault("uri", "");
+                files.put(uri.replace("file://", ""), item.getOrDefault("text", ""));
+            } else if ("image".equals(type)) {
+                String uri = (String) item.getOrDefault("uri", "");
+                files.put(uri.replace("file://", ""),
+                        Base64.getDecoder().decode((String) item.getOrDefault("data", "")));
+            } else if ("resource".equals(type)) {
+                Map<String, Object> resource = (Map<String, Object>) item.getOrDefault(
+                        "resource", Collections.emptyMap());
+                String resourceUri = (String) resource.getOrDefault("uri", "");
+                String filePath = resourceUri.replace("file://", "");
+                if ("text".equals(resource.get("type"))) {
+                    files.put(filePath, resource.get("text"));
+                } else if ("blob".equals(resource.get("type"))) {
+                    byte[] raw = Base64.getDecoder().decode((String) resource.get("blob"));
+                    files.put(filePath, decodeUtf8OrRaw(raw));
                 }
             }
         }
@@ -568,6 +601,22 @@ public class CodeInterpreterClient implements AutoCloseable {
             }
         }
         return item;
+    }
+
+    /**
+     * Decode bytes as strict UTF-8 text; fall back to raw bytes when not valid UTF-8.
+     * Mirrors the Python SDK: {@code raw.decode("utf-8")} with a raw-bytes fallback.
+     */
+    private static Object decodeUtf8OrRaw(byte[] raw) {
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(raw))
+                    .toString();
+        } catch (CharacterCodingException e) {
+            return raw;
+        }
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.huaweicloud.agentarts.sdk.service.http.RequestResult;
 import com.huaweicloud.agentarts.sdk.service.runtime.model.CreateAgentRequest;
 import com.huaweicloud.agentarts.sdk.service.runtime.model.UpdateAgentRequest;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import com.sun.net.httpserver.HttpServer;
 import reactor.core.publisher.Mono;
@@ -17,6 +18,8 @@ import reactor.core.publisher.Flux;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -35,6 +38,9 @@ class RuntimeClientTest {
     @DisplayName("RuntimeClient API methods")
     @SuppressWarnings("deprecation")
     class ApiMethodTests {
+
+        @TempDir
+        Path tmpDir;
 
         @Test
         void controlPlaneMethodsExist() throws Exception {
@@ -258,6 +264,60 @@ class RuntimeClientTest {
             }
             verify(dataClient, never()).request(
                     anyString(), anyString(), any(), any(), any(), anyDouble());
+        }
+
+        @Test
+        void uploadFilesReadsLocalFileAndUploadsItsBytes() throws Exception {
+            BaseHttpClient controlClient = mock(BaseHttpClient.class);
+            BaseHttpClient dataClient = mock(BaseHttpClient.class);
+            RequestResult response = RequestResult.builder()
+                    .success(true).statusCode(200)
+                    .data(JsonUtils.MAPPER.readTree("{\"status\":\"uploaded\"}"))
+                    .build();
+            when(dataClient.request(eq("POST"),
+                    eq("https://runtime.example/runtimes/agent/upload-files"),
+                    anyMap(), any(), anyMap(), eq(30.0)))
+                    .thenReturn(Mono.just(response));
+
+            Path local = tmpDir.resolve("data.txt");
+            Files.writeString(local, "hello local");
+
+            try (RuntimeClient client = new RuntimeClient(
+                    "test-region", true, SignMode.SDK_HMAC_SHA256,
+                    controlClient, dataClient)) {
+                Map<String, Object> result = client.uploadFiles(
+                        "agent", "session",
+                        List.of(Map.of("local_file", local.toString())),
+                        "/home/user/", null, null, null,
+                        "token", "https://runtime.example", null, 30);
+                assertNotNull(result);
+            }
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, List<String>>> params = ArgumentCaptor.forClass(Map.class);
+            ArgumentCaptor<Object> body = ArgumentCaptor.forClass(Object.class);
+            verify(dataClient).request(eq("POST"),
+                    eq("https://runtime.example/runtimes/agent/upload-files"),
+                    anyMap(), body.capture(), params.capture(), eq(30.0));
+            assertArrayEquals("hello local".getBytes(StandardCharsets.UTF_8),
+                    (byte[]) body.getValue());
+            assertEquals("/home/user/data.txt", params.getValue().get("path").get(0));
+        }
+
+        @Test
+        void uploadFilesRequiresLocalFileOrContent() {
+            BaseHttpClient controlClient = mock(BaseHttpClient.class);
+            BaseHttpClient dataClient = mock(BaseHttpClient.class);
+
+            try (RuntimeClient client = new RuntimeClient(
+                    "test-region", true, SignMode.SDK_HMAC_SHA256,
+                    controlClient, dataClient)) {
+                assertThrows(IllegalArgumentException.class,
+                        () -> client.uploadFiles("agent", "session",
+                                List.of(Map.<String, Object>of("filename", "x.txt")),
+                                "/remote", null, null, null,
+                                "token", "https://example.test", null, 30));
+            }
         }
 
         @Test

@@ -38,7 +38,6 @@ import java.util.Map;
 )
 public class RuntimeCommand implements Runnable {
 
-    private static final long MAX_UPLOAD_FILE_BYTES = 64L * 1024 * 1024;
     private static final long MAX_UPLOAD_TOTAL_BYTES = 128L * 1024 * 1024;
 
     @Override
@@ -149,24 +148,27 @@ public class RuntimeCommand implements Runnable {
             if (timeout < 1) {
                 CliSupport.fail("timeout must be greater than zero");
             }
-            // Read each local file into memory and carry its bytes + filename.
-            // RuntimeClient.uploadFiles streams single-file uploads as
+            // Pass local paths to the SDK; RuntimeClient.uploadFiles reads each
+            // local_file itself and streams single-file uploads as
             // application/octet-stream (raw bytes) and multi-file uploads as
             // multipart/form-data, matching the reference CLI's wire format.
             List<Map<String, Object>> fileMaps = new ArrayList<>();
             long totalBytes = 0;
             for (String f : files) {
                 Path local = Path.of(f);
-                byte[] content = CliSupport.readFileBytes(local, MAX_UPLOAD_FILE_BYTES);
-                totalBytes += content.length;
+                if (!Files.isRegularFile(local)) {
+                    CliSupport.fail("File not found: " + f);
+                }
+                try {
+                    totalBytes += Files.size(local);
+                } catch (java.io.IOException e) {
+                    CliSupport.fail("Failed to read file size: " + f + " (" + e.getMessage() + ")");
+                }
                 if (totalBytes > MAX_UPLOAD_TOTAL_BYTES) {
                     CliSupport.fail("Selected files exceed the " + MAX_UPLOAD_TOTAL_BYTES
                             + " byte total upload limit");
                 }
-                Map<String, Object> spec = new LinkedHashMap<>();
-                spec.put("filename", local.getFileName().toString());
-                spec.put("content", content);
-                fileMaps.add(spec);
+                fileMaps.add(Map.<String, Object>of("local_file", f));
             }
             try (RuntimeClient client = RuntimeResolver.resolve(
                     agentName, region, !skipSsl, resolvedBearerToken, endpoint)) {

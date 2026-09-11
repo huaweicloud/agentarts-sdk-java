@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 /**
@@ -422,20 +424,14 @@ public class RuntimeClient implements AutoCloseable {
         if (files.size() == 1) {
             // Single file: application/octet-stream, raw bytes streamed, path = remote FILE path.
             Map<String, Object> file = files.get(0);
-            byte[] content = fileContentBytes(file.get("content"));
-            if (content == null) {
-                throw new IllegalArgumentException(
-                        "File \"content\" (bytes) is required for single-file upload");
-            }
-            String filename = (file.get("filename") != null)
-                    ? String.valueOf(file.get("filename")) : "file_0";
+            FileSpec spec = resolveFileSpec(file, 0);
             String fileRemote = (file.get("path") != null && !String.valueOf(file.get("path")).isBlank())
                     ? String.valueOf(file.get("path"))
-                    : (path.endsWith("/") ? path + filename : path + "/" + filename);
+                    : (path.endsWith("/") ? path + spec.filename : path + "/" + spec.filename);
             params.put("path", List.of(fileRemote));
             headers.put("Content-Type", "application/octet-stream");
             result = getDataClient().request(
-                    "POST", dataUrl(uploadUrl, endpoint), headers, content, params, (double) timeout).block();
+                    "POST", dataUrl(uploadUrl, endpoint), headers, spec.content, params, (double) timeout).block();
         } else {
             // Multiple files: multipart/form-data, path = remote DIRECTORY.
             params.put("path", List.of(path));
@@ -446,22 +442,17 @@ public class RuntimeClient implements AutoCloseable {
                 long maximumBodyBytes = getDataClient().getConfig().getMaxRequestBodyBytes();
                 int idx = 0;
                 for (Map<String, Object> file : files) {
-                    byte[] content = fileContentBytes(file.get("content"));
-                    if (content == null) {
-                        continue;
-                    }
-                    String filename = (file.get("filename") != null)
-                            ? String.valueOf(file.get("filename")) : "file_" + idx;
-                    filename = sanitizeMultipartFilename(filename);
+                    FileSpec spec = resolveFileSpec(file, idx);
+                    String filename = sanitizeMultipartFilename(spec.filename);
                     String partHead = "--" + boundary + "\r\n"
                             + "Content-Disposition: form-data; name=\"file\"; filename=\""
                             + filename + "\"\r\n"
-                            + "Content-Type: application/octet-stream\r\n\r\n";
+                            + "Content-Type: " + spec.contentType + "\r\n\r\n";
                     byte[] partHeader = partHead.getBytes(StandardCharsets.UTF_8);
-                    ensureMultipartCapacity(out.size(), partHeader.length, content.length,
+                    ensureMultipartCapacity(out.size(), partHeader.length, spec.content.length,
                             crlf.length, maximumBodyBytes);
                     out.write(partHeader);
-                    out.write(content);
+                    out.write(spec.content);
                     out.write(crlf);
                     idx++;
                 }
@@ -481,18 +472,83 @@ public class RuntimeClient implements AutoCloseable {
         return check(result, "upload_files");
     }
 
-    /** Coerce a file spec's "content" field to raw bytes (byte[] or UTF-8 String). */
-    private static byte[] fileContentBytes(Object content) {
+    private static final long MAX_FILE_SIZE = 100L * 1024 * 1024; // 100 MB, matches Python SDK
+
+    /** Resolved file spec: raw bytes, filename, and multipart content type. */
+    private static final class FileSpec {
+        final byte[] content;
+        final String filename;
+        final String contentType;
+
+        FileSpec(byte[] content, String filename, String contentType) {
+            this.content = content;
+            this.filename = filename;
+            this.contentType = contentType;
+        }
+    }
+
+    /**
+     * Resolve a file spec to raw bytes, filename, and multipart content type.
+     *
+     * <p>A spec may provide a local filesystem path via {@code local_file} — the
+     * SDK reads the file content itself — or inline content via {@code content}
+     * (byte[] or UTF-8 String). This matches the Python SDK's {@code local_file}
+     * primary / {@code content} fallback semantics.</p>
+     */
+    private static FileSpec resolveFileSpec(Map<String, Object> file, int index) {
+        Object localFile = file.get("local_file");
+        if (localFile != null && !String.valueOf(localFile).isBlank()) {
+            String local = String.valueOf(localFile);
+            Path path = Path.of(local);
+            try {
+                if (!Files.isRegularFile(path)) {
+                    throw new IllegalArgumentException("File not found: " + local);
+                }
+                long size = Files.size(path);
+                if (size > MAX_FILE_SIZE) {
+                    throw new IllegalArgumentException("File too large: " + local
+                            + " (" + String.format("%.1fMB, max 100MB", size / 1024.0 / 1024.0) + ")");
+                }
+                return new FileSpec(Files.readAllBytes(path), filenameOf(local),
+                        "application/octet-stream");
+            } catch (java.io.IOException e) {
+                throw new IllegalArgumentException("Failed to read local file: " + local, e);
+            }
+        }
+        Object content = file.get("content");
         if (content == null) {
-            return null;
+            throw new IllegalArgumentException(
+                    "File local_file or content is required (file " + index + ")");
         }
         if (content instanceof byte[]) {
-            return (byte[]) content;
+            byte[] bytes = (byte[]) content;
+            checkContentSize(bytes.length, index);
+            String filename = file.get("filename") != null
+                    ? String.valueOf(file.get("filename")) : "file_" + index;
+            return new FileSpec(bytes, filename, "application/octet-stream");
         }
         if (content instanceof String) {
-            return ((String) content).getBytes(StandardCharsets.UTF_8);
+            byte[] bytes = ((String) content).getBytes(StandardCharsets.UTF_8);
+            checkContentSize(bytes.length, index);
+            String filename = file.get("filename") != null
+                    ? String.valueOf(file.get("filename")) : "file_" + index;
+            return new FileSpec(bytes, filename, "text/plain");
         }
-        return null;
+        throw new IllegalArgumentException("Unsupported content type for file " + index
+                + ": expected byte[] or String");
+    }
+
+    private static void checkContentSize(long size, int index) {
+        if (size > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("Content too large for file " + index
+                    + " (" + String.format("%.1fMB, max 100MB", size / 1024.0 / 1024.0) + ")");
+        }
+    }
+
+    /** Basename of a local path, handling both '/' and '\\' separators (matches Python). */
+    private static String filenameOf(String localFile) {
+        int lastSlash = Math.max(localFile.lastIndexOf('/'), localFile.lastIndexOf('\\'));
+        return lastSlash >= 0 ? localFile.substring(lastSlash + 1) : localFile;
     }
 
     private static String sanitizeMultipartFilename(String filename) {

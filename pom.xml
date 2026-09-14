@@ -611,7 +611,7 @@
             </build>
         </profile>
         <profile>
-            <id>release</id>
+            <id>release-central</id>
             <build>
                 <plugins>
                     <plugin>

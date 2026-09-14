@@ -12,6 +12,13 @@
     <name>AgentArts SDK :: BOM</name>
     <description>Bill of Materials for AgentArts Java SDK - centralized dependency version management</description>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>central-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <properties>
         <revision>0.1.0-SNAPSHOT</revision>
         <reactor-bom.version>2025.0.2</reactor-bom.version>

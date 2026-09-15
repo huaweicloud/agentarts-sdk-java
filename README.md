@@ -93,7 +93,7 @@ agentarts-sdk-java/
 <dependency>
     <groupId>com.huaweicloud.agentarts</groupId>
     <artifactId>agentarts-sdk-runtime</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -161,7 +161,7 @@ curl -X POST http://localhost:8080/invocations \
 <dependency>
     <groupId>com.huaweicloud.agentarts</groupId>
     <artifactId>agentarts-sdk-integration-agentscope</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -213,7 +213,7 @@ For Spring Boot 3.x applications, use the optional starter for auto-configuratio
 <dependency>
     <groupId>com.huaweicloud.agentarts</groupId>
     <artifactId>agentarts-spring-boot-starter</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 

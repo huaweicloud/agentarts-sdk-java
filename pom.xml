@@ -60,7 +60,7 @@
 
     <properties>
         <!-- Project version managed by flatten-maven-plugin -->
-        <revision>0.1.0-SNAPSHOT</revision>
+        <revision>0.1.0</revision>
 
         <!-- Java -->
         <java.version>17</java.version>

@@ -37,8 +37,8 @@ mvn -pl agentarts-toolkit-cli package -am -DskipTests
 产物为两个 jar：
 
 ```
-agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-SNAPSHOT.jar            # thin jar，供其它模块依赖
-agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-SNAPSHOT-standalone.jar # 自包含 fat jar，CLI 运行用
+agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0.jar            # thin jar，供其它模块依赖
+agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-standalone.jar # 自包含 fat jar，CLI 运行用
 ```
 
 `-standalone` 为自包含 fat jar，picocli 与 SDK 运行依赖均已打入，`java -jar` 无需额外 classpath。构建使用依赖最小化并保留服务加载元数据；thin 主 jar 继续供其它模块依赖。
@@ -48,7 +48,7 @@ agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-SNAPSHOT-standalone.jar
 ### 方式一：java -jar
 
 ```bash
-java -jar agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-SNAPSHOT-standalone.jar --version
+java -jar agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-standalone.jar --version
 # AgentArts CLI 0.1.0
 ```
 
@@ -76,7 +76,7 @@ export PATH="$PWD/bin:$PATH"
 agentarts --version
 
 # (b) 或定义 alias / 函数
-alias agentarts="java -jar $PWD/agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-SNAPSHOT-standalone.jar"
+alias agentarts="java -jar $PWD/agentarts-toolkit-cli/target/agentarts-toolkit-cli-0.1.0-standalone.jar"
 ```
 
 Windows PowerShell：
@@ -91,7 +91,7 @@ setx PATH "$PWD\bin;$env:PATH"
 # 注意：setx 会截断超过 1024 字符的 PATH，建议改用「系统属性 → 环境变量」图形界面编辑。
 
 # (c) 或定义函数（写入 $PROFILE 可跨会话复用）
-function agentarts { java -jar "$PWD\agentarts-toolkit-cli\target\agentarts-toolkit-cli-0.1.0-SNAPSHOT-standalone.jar" @args }
+function agentarts { java -jar "$PWD\agentarts-toolkit-cli\target\agentarts-toolkit-cli-0.1.0-standalone.jar" @args }
 ```
 
 > Windows 下 `bin/agentarts.cmd` 由 cmd 解释器运行，在 PowerShell 与 cmd.exe 中均可直接调用 `agentarts`。若提示找不到命令，确认 `bin` 已在 PATH 中、且 `.cmd` 扩展名未被 `PATHEXT` 排除（默认包含 `.CMD`）。

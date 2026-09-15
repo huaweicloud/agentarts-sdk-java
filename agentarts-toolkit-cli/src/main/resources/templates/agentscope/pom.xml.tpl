@@ -11,7 +11,7 @@
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <agentarts.version>0.1.0-SNAPSHOT</agentarts.version>
+        <agentarts.version>0.1.0</agentarts.version>
         <agentscope.version>2.0.0</agentscope.version>
     </properties>
 

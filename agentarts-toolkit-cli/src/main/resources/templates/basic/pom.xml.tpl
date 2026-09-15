@@ -17,7 +17,7 @@
         <dependency>
             <groupId>com.huaweicloud.agentarts</groupId>
             <artifactId>agentarts-sdk-runtime</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
     </dependencies>
 

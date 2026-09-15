@@ -86,7 +86,7 @@ class CliDeployedRuntimeE2ETest {
         System.setProperty("user.dir", projectDir.toAbsolutePath().toString());
 
         // Ensure the SDK runtime artifact is in the local Maven repo so the generated
-        // project (which depends on agentarts-sdk-runtime:0.1.0-SNAPSHOT) can build.
+        // project (which depends on agentarts-sdk-runtime:0.1.0) can build.
         ensureSdkInstalled();
 
         // 1. init (basic template) — writes a deploy-ready .agentarts_config.yaml + Dockerfile.
@@ -371,7 +371,7 @@ class CliDeployedRuntimeE2ETest {
     /**
      * Ensure the SDK runtime artifact (and its upstream modules) are installed to
      * the local Maven repo, so the generated project's {@code mvn package} can
-     * resolve {@code agentarts-sdk-runtime:0.1.0-SNAPSHOT}.
+     * resolve {@code agentarts-sdk-runtime:0.1.0}.
      */
     private static void ensureSdkInstalled() {
         // Locate the SDK root: walk up from the original user.dir until the runtime
@@ -398,7 +398,7 @@ class CliDeployedRuntimeE2ETest {
         File localRepo = resolveMavenLocalRepo();
         File localJar = new File(localRepo,
                 "com/huaweicloud/agentarts/agentarts-sdk-runtime/"
-                        + "0.1.0-SNAPSHOT/agentarts-sdk-runtime-0.1.0-SNAPSHOT.jar");
+                        + "0.1.0/agentarts-sdk-runtime-0.1.0.jar");
         if (localJar.isFile()) {
             System.out.println("[setup] agentarts-sdk-runtime already in local repo at " + localJar);
             return;

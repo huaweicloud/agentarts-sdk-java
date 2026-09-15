@@ -84,7 +84,7 @@
 
         <!-- agentscope (provided/optional) -->
         <agentscope.version>2.0.0</agentscope.version>
-        <mcp-sdk.version>0.17.0</mcp-sdk.version>
+        <mcp-sdk.version>1.0.1</mcp-sdk.version>
 
         <!-- CLI -->
         <picocli.version>4.7.6</picocli.version>

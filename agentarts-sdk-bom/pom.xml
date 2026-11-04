@@ -33,7 +33,7 @@
         <huaweicloud-sdk.version>3.1.207</huaweicloud-sdk.version>
         <agentscope.version>1.0.12</agentscope.version>
         <mcp-sdk.version>0.17.0</mcp-sdk.version>
-        <picocli.version>4.7.6</picocli.version>
+        <picocli.version>4.7.7</picocli.version>
     </properties>
 
     <dependencyManagement>

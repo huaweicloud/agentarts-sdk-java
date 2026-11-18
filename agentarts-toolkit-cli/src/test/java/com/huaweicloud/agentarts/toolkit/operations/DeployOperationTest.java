@@ -50,6 +50,21 @@ class DeployOperationTest {
     }
 
     @Test
+    void forwardsEnableRestrictedCredentialsFromRuntimeConfig() {
+        RuntimeConfig enabled = new RuntimeConfig();
+        enabled.setEnableRestrictedCredentials(true);
+
+        CreateAgentRequest request = DeployOperation.buildCreateRequest(
+                "sample-agent", "registry.example/sample:latest", enabled, null);
+        assertEquals(Boolean.TRUE, request.getEnableRestrictedCredentials());
+
+        // Unset runtime config keeps the toolkit default (false).
+        CreateAgentRequest defaulted = DeployOperation.buildCreateRequest(
+                "sample-agent", "registry.example/sample:latest", new RuntimeConfig(), null);
+        assertEquals(Boolean.FALSE, defaulted.getEnableRestrictedCredentials());
+    }
+
+    @Test
     void preservesConfiguredRuntimeFieldsAndFiltersNullEntries() {
         RuntimeConfig runtime = new RuntimeConfig();
         runtime.setArtifactSource(new LinkedHashMap<>(Map.of("commands", List.of("run"))));

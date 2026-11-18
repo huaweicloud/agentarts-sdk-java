@@ -18,6 +18,10 @@ agents:
     runtime:
       arch: arm64
       agent_gateway_id: null
+      # Credential anti-theft switch.When True,runtime
+      # credentials are bound to the current VPC and rejected outside it.Only supported
+      # in private(VPC) network mode.Omit to keep the backend default (False).
+      enable_restricted_credentials: false
       invoke_config:
         protocol: HTTP
         port: 8080

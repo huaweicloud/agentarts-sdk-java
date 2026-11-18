@@ -52,6 +52,14 @@ public class CreateAgentRequest {
     @JsonProperty("arch")
     private String arch;
 
+    /**
+     * Credential anti-theft switch. When True, runtime credentials are bound to the
+     * current VPC and rejected outside it. Only supported in private(VPC) network
+     * mode. Null means the field is omitted and the backend default applies.
+     */
+    @JsonProperty("enable_restricted_credentials")
+    private Boolean enableRestrictedCredentials;
+
     public CreateAgentRequest withName(String name) {
         this.name = name;
         return this;
@@ -217,8 +225,21 @@ public class CreateAgentRequest {
         return this;
     }
 
+    public CreateAgentRequest withEnableRestrictedCredentials(Boolean enableRestrictedCredentials) {
+        this.enableRestrictedCredentials = enableRestrictedCredentials;
+        return this;
+    }
+
     public void setArch(String arch) {
         this.arch = arch;
+    }
+
+    public Boolean getEnableRestrictedCredentials() {
+        return enableRestrictedCredentials;
+    }
+
+    public void setEnableRestrictedCredentials(Boolean enableRestrictedCredentials) {
+        this.enableRestrictedCredentials = enableRestrictedCredentials;
     }
 
     @Override
@@ -238,14 +259,16 @@ public class CreateAgentRequest {
                 && Objects.equals(agentGatewayId, that.agentGatewayId)
                 && Objects.equals(environmentVariables, that.environmentVariables)
                 && Objects.equals(tags, that.tags)
-                && Objects.equals(arch, that.arch);
+                && Objects.equals(arch, that.arch)
+                && Objects.equals(enableRestrictedCredentials, that.enableRestrictedCredentials);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(name, description, artifactSource, storageConfig,
                 identityConfiguration, invokeConfig, networkConfig, observability,
-                executionAgencyName, agentGatewayId, environmentVariables, tags, arch);
+                executionAgencyName, agentGatewayId, environmentVariables, tags, arch,
+                enableRestrictedCredentials);
     }
 
     @Override
@@ -261,6 +284,7 @@ public class CreateAgentRequest {
                 + ", environmentVariables=" + redacted(environmentVariables)
                 + ", tags=" + tags
                 + ", arch='" + arch + "'"
+                + ", enableRestrictedCredentials=" + enableRestrictedCredentials
                 + "}";
     }
 

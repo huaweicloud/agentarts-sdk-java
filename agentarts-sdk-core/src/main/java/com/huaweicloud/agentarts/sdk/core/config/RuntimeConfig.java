@@ -25,6 +25,14 @@ public class RuntimeConfig {
     @JsonProperty("execution_agency_name")
     private String executionAgencyName;
 
+    /**
+     * Credential anti-theft switch. When True, runtime credentials are bound to the
+     * current VPC and rejected outside it. Only supported in private(VPC) network
+     * mode. Defaults to False.
+     */
+    @JsonProperty("enable_restricted_credentials")
+    private Boolean enableRestrictedCredentials = false;
+
     @JsonProperty("identity_configuration")
     private Map<String, Object> identityConfiguration;
 
@@ -60,6 +68,9 @@ public class RuntimeConfig {
 
     public String getExecutionAgencyName() { return executionAgencyName; }
     public void setExecutionAgencyName(String executionAgencyName) { this.executionAgencyName = executionAgencyName; }
+
+    public Boolean getEnableRestrictedCredentials() { return enableRestrictedCredentials; }
+    public void setEnableRestrictedCredentials(Boolean enableRestrictedCredentials) { this.enableRestrictedCredentials = enableRestrictedCredentials; }
 
     public Map<String, Object> getIdentityConfiguration() { return identityConfiguration; }
     public void setIdentityConfiguration(Map<String, Object> identityConfiguration) { this.identityConfiguration = identityConfiguration; }

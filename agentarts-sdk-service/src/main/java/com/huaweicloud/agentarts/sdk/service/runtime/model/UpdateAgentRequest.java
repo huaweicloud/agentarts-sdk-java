@@ -43,6 +43,14 @@ public class UpdateAgentRequest {
     @JsonProperty("tags")
     private List<Map<String, String>> tags;
 
+    /**
+     * Credential anti-theft switch. When True, runtime credentials are bound to the
+     * current VPC and rejected outside it. Only supported in private(VPC) network
+     * mode. Null means the field is omitted and the backend default applies.
+     */
+    @JsonProperty("enable_restricted_credentials")
+    private Boolean enableRestrictedCredentials;
+
     public UpdateAgentRequest withDescription(String description) {
         this.description = description;
         return this;
@@ -90,6 +98,11 @@ public class UpdateAgentRequest {
 
     public UpdateAgentRequest withTags(List<Map<String, String>> tags) {
         this.tags = tags;
+        return this;
+    }
+
+    public UpdateAgentRequest withEnableRestrictedCredentials(Boolean enableRestrictedCredentials) {
+        this.enableRestrictedCredentials = enableRestrictedCredentials;
         return this;
     }
 
@@ -173,6 +186,14 @@ public class UpdateAgentRequest {
         this.tags = tags;
     }
 
+    public Boolean getEnableRestrictedCredentials() {
+        return enableRestrictedCredentials;
+    }
+
+    public void setEnableRestrictedCredentials(Boolean enableRestrictedCredentials) {
+        this.enableRestrictedCredentials = enableRestrictedCredentials;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -187,14 +208,15 @@ public class UpdateAgentRequest {
                 && Objects.equals(executionAgencyName, that.executionAgencyName)
                 && Objects.equals(agentGatewayId, that.agentGatewayId)
                 && Objects.equals(environmentVariables, that.environmentVariables)
-                && Objects.equals(tags, that.tags);
+                && Objects.equals(tags, that.tags)
+                && Objects.equals(enableRestrictedCredentials, that.enableRestrictedCredentials);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(description, artifactSource, storageConfig, invokeConfig,
                 networkConfig, observability, executionAgencyName, agentGatewayId,
-                environmentVariables, tags);
+                environmentVariables, tags, enableRestrictedCredentials);
     }
 
     @Override
@@ -207,6 +229,7 @@ public class UpdateAgentRequest {
                 + ", invokeConfig=" + redacted(invokeConfig)
                 + ", environmentVariables=" + redacted(environmentVariables)
                 + ", tags=" + tags
+                + ", enableRestrictedCredentials=" + enableRestrictedCredentials
                 + "}";
     }
 

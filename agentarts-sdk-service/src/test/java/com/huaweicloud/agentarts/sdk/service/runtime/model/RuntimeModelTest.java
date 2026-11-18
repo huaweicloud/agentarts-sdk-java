@@ -100,6 +100,24 @@ class RuntimeModelTest {
         }
 
         @Test
+        void enableRestrictedCredentialsSerializedWhenTrue() {
+            CreateAgentRequest req = new CreateAgentRequest()
+                    .withName("test-agent")
+                    .withEnableRestrictedCredentials(true);
+            String json = JsonUtils.toJson(req);
+            assertTrue(json.contains("\"enable_restricted_credentials\":true"));
+        }
+
+        @Test
+        void enableRestrictedCredentialsOmittedWhenUnset() {
+            CreateAgentRequest req = new CreateAgentRequest()
+                    .withName("test-agent")
+                    .withDescription("desc");
+            String json = JsonUtils.toJson(req);
+            assertFalse(json.contains("enable_restricted_credentials"));
+        }
+
+        @Test
         void jsonSerializationWithAllFields() {
             CreateAgentRequest req = new CreateAgentRequest()
                     .withName("full-agent")
@@ -211,6 +229,23 @@ class RuntimeModelTest {
             assertTrue(json.contains("\"description\":\"Updated description\""));
             // Should NOT have name field
             assertFalse(json.contains("\"name\""));
+        }
+
+        @Test
+        void enableRestrictedCredentialsSerializedWhenFalse() {
+            UpdateAgentRequest req = new UpdateAgentRequest()
+                    .withDescription("Updated description")
+                    .withEnableRestrictedCredentials(false);
+            String json = JsonUtils.toJson(req);
+            assertTrue(json.contains("\"enable_restricted_credentials\":false"));
+        }
+
+        @Test
+        void enableRestrictedCredentialsOmittedWhenUnset() {
+            UpdateAgentRequest req = new UpdateAgentRequest()
+                    .withDescription("Updated description");
+            String json = JsonUtils.toJson(req);
+            assertFalse(json.contains("enable_restricted_credentials"));
         }
 
         @Test

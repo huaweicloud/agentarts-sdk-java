@@ -297,6 +297,7 @@ public class DeployOperation {
                 .withObservability(runtimeCfg.getObservability())
                 .withExecutionAgencyName(runtimeCfg.getExecutionAgencyName())
                 .withAgentGatewayId(runtimeCfg.getAgentGatewayId())
+                .withEnableRestrictedCredentials(runtimeCfg.getEnableRestrictedCredentials())
                 .withIdentityConfiguration(runtimeCfg.getIdentityConfiguration());
 
         // environment_variables: Map<String,String> -> [{key,value}]

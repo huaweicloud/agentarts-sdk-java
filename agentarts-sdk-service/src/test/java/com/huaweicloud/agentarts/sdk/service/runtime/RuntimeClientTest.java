@@ -181,6 +181,61 @@ class RuntimeClientTest {
         }
 
         @Test
+        void createOrUpdateForwardsEnableRestrictedCredentialsOnBothPaths() throws Exception {
+            BaseHttpClient controlClient = mock(BaseHttpClient.class);
+            BaseHttpClient dataClient = mock(BaseHttpClient.class);
+            // findAgentByName returns the list; "sample-agent" matches, "fresh-agent"
+            // does not, so one call drives the update path and one the create path.
+            RequestResult agents = RequestResult.builder()
+                    .success(true).statusCode(200)
+                    .data(JsonUtils.MAPPER.readTree(
+                            "{\"items\":[{\"id\":\"agent-id\",\"name\":\"sample-agent\"}],\"total\":1}"))
+                    .build();
+            when(controlClient.request(eq("GET"), eq("/runtimes"),
+                    isNull(), isNull(), anyMap())).thenReturn(Mono.just(agents));
+            RequestResult updated = RequestResult.builder()
+                    .success(true).statusCode(200)
+                    .data(JsonUtils.MAPPER.readTree("{\"id\":\"agent-id\"}"))
+                    .build();
+            when(controlClient.put(eq("/runtimes/agent-id"), any()))
+                    .thenReturn(Mono.just(updated));
+            RequestResult created = RequestResult.builder()
+                    .success(true).statusCode(200)
+                    .data(JsonUtils.MAPPER.readTree("{\"id\":\"new-agent\"}"))
+                    .build();
+            when(controlClient.post(eq("/runtimes"), any()))
+                    .thenReturn(Mono.just(created));
+
+            try (RuntimeClient client = new RuntimeClient(
+                    "test-region", true, SignMode.SDK_HMAC_SHA256,
+                    controlClient, dataClient)) {
+                // Update branch: switch off.
+                CreateAgentRequest off = new CreateAgentRequest()
+                        .withName("sample-agent")
+                        .withEnableRestrictedCredentials(false);
+                client.createOrUpdateAgent("sample-agent", off);
+                // Create branch: switch on.
+                CreateAgentRequest on = new CreateAgentRequest()
+                        .withName("fresh-agent")
+                        .withEnableRestrictedCredentials(true);
+                client.createOrUpdateAgent("fresh-agent", on);
+            }
+
+            ArgumentCaptor<UpdateAgentRequest> updateCaptor =
+                    ArgumentCaptor.forClass(UpdateAgentRequest.class);
+            verify(controlClient).put(eq("/runtimes/agent-id"), updateCaptor.capture());
+            assertEquals(Boolean.FALSE,
+                    updateCaptor.getValue().getEnableRestrictedCredentials());
+
+            ArgumentCaptor<CreateAgentRequest> createCaptor =
+                    ArgumentCaptor.forClass(CreateAgentRequest.class);
+            verify(controlClient).post(eq("/runtimes"), createCaptor.capture());
+            assertEquals("fresh-agent", createCaptor.getValue().getName());
+            assertEquals(Boolean.TRUE,
+                    createCaptor.getValue().getEnableRestrictedCredentials());
+        }
+
+        @Test
         void agentFiltersArePassedAsEncodedQueryParameters() throws Exception {
             BaseHttpClient controlClient = mock(BaseHttpClient.class);
             BaseHttpClient dataClient = mock(BaseHttpClient.class);

@@ -258,6 +258,15 @@ class ConfigTest {
             assertEquals("V", config.getEnvironmentVariables().get("K"));
             assertEquals("v1", config.getTags().get("t1"));
         }
+
+        @Test
+        void enableRestrictedCredentialsDefaultsToFalseAndParses() throws Exception {
+            assertEquals(Boolean.FALSE, new RuntimeConfig().getEnableRestrictedCredentials());
+
+            String json = "{\"arch\":\"arm64\",\"enable_restricted_credentials\":true}";
+            RuntimeConfig parsed = JsonUtils.MAPPER.readValue(json, RuntimeConfig.class);
+            assertEquals(Boolean.TRUE, parsed.getEnableRestrictedCredentials());
+        }
     }
 
     // ============================================================

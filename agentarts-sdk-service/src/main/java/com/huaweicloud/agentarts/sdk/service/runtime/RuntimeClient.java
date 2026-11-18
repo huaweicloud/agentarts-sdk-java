@@ -183,7 +183,8 @@ public class RuntimeClient implements AutoCloseable {
                     .withExecutionAgencyName(req.getExecutionAgencyName())
                     .withAgentGatewayId(req.getAgentGatewayId())
                     .withEnvironmentVariables(req.getEnvironmentVariables())
-                    .withTags(req.getTags());
+                    .withTags(req.getTags())
+                    .withEnableRestrictedCredentials(req.getEnableRestrictedCredentials());
             return updateAgent(existing.getId(), updateReq);
         } else {
             req.setName(agentName);
